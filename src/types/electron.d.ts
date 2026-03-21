@@ -16,6 +16,53 @@ export interface BookmarkNode {
   children?: BookmarkNode[]
 }
 
+export interface MarketplaceExtension {
+  name: string
+  namespace: string
+  displayName?: string
+  description?: string
+  version: string
+  iconUrl?: string
+  downloadUrl?: string
+  downloadCount?: number
+  averageRating?: number
+  categories?: string[]
+}
+
+export interface InstalledExtension {
+  id: string
+  manifest: {
+    name: string
+    displayName?: string
+    description?: string
+    version: string
+    publisher: string
+    icon?: string
+    categories?: string[]
+    contributes?: {
+      themes?: Array<{ label: string; uiTheme: string; path: string }>
+      commands?: Array<{ command: string; title: string }>
+      [key: string]: any
+    }
+    [key: string]: any
+  }
+  extensionPath: string
+  enabled: boolean
+}
+
+export interface SearchResult {
+  extensions: MarketplaceExtension[]
+  totalSize: number
+  offset: number
+}
+
+export interface ThemeInfo {
+  extensionId: string
+  label: string
+  uiTheme: string
+  themePath: string
+}
+
 export interface ElectronAPI {
   window: {
     minimize: () => void
@@ -72,6 +119,34 @@ export interface ElectronAPI {
       bookmarks: BookmarkNode[]
     }>
     clearData: () => Promise<boolean>
+  }
+  extensions: {
+    search: (query: string) => Promise<SearchResult>
+    getDetails: (publisher: string, name: string) => Promise<any>
+    install: (publisher: string, name: string) => Promise<InstalledExtension>
+    uninstall: (extId: string) => Promise<void>
+    listInstalled: () => Promise<InstalledExtension[]>
+    toggle: (extId: string, enabled: boolean) => Promise<void>
+    getThemes: () => Promise<ThemeInfo[]>
+    loadTheme: (themePath: string) => Promise<any>
+    startHost: (workspaceFolders: string[]) => Promise<{ ok: boolean }>
+    stopHost: () => Promise<void>
+    activateExtension: (extensionId: string) => Promise<void>
+    executeCommand: (command: string, ...args: any[]) => Promise<any>
+    getHostStatus: () => Promise<{ running: boolean; error: string | null; stderr: string[] }>
+    getRegisteredViews: () => Promise<Array<{ viewId: string; type: string }>>
+    resolveWebviewView: (viewId: string) => Promise<{ html: string } | null>
+    sendWebviewMessage: (viewId: string, message: any) => Promise<void>
+    onStatusBarUpdate: (callback: (item: any) => void) => () => void
+    onStatusBarRemove: (callback: (id: string) => void) => () => void
+    onStatusBarMessage: (callback: (text: string) => void) => () => void
+    onShowMessage: (callback: (data: { level: string; message: string }) => void) => () => void
+    onActivated: (callback: (data: any) => void) => () => void
+    onError: (callback: (data: any) => void) => () => void
+    onWebviewHtml: (callback: (data: { viewId: string; html: string }) => void) => () => void
+    onWebviewMessage: (callback: (data: { viewId: string; message: any }) => void) => () => void
+    onViewRegistered: (callback: (data: { viewId: string }) => void) => () => void
+    onWebviewPanelCreated: (callback: (data: { panelId: string; viewType: string; title: string }) => void) => () => void
   }
 }
 

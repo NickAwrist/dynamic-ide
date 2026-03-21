@@ -85,6 +85,88 @@ const api = {
       ipcRenderer.invoke('browser:importBookmarks', profilePath),
     clearData: () => ipcRenderer.invoke('browser:clearData'),
   },
+
+  // Extensions
+  extensions: {
+    search: (query: string) => ipcRenderer.invoke('ext:search', query),
+    getDetails: (publisher: string, name: string) =>
+      ipcRenderer.invoke('ext:details', { publisher, name }),
+    install: (publisher: string, name: string) =>
+      ipcRenderer.invoke('ext:install', { publisher, name }),
+    uninstall: (extId: string) => ipcRenderer.invoke('ext:uninstall', extId),
+    listInstalled: () => ipcRenderer.invoke('ext:listInstalled'),
+    toggle: (extId: string, enabled: boolean) =>
+      ipcRenderer.invoke('ext:toggle', { extId, enabled }),
+    getThemes: () => ipcRenderer.invoke('ext:getThemes'),
+    loadTheme: (themePath: string) => ipcRenderer.invoke('ext:loadTheme', themePath),
+    startHost: (workspaceFolders: string[]) =>
+      ipcRenderer.invoke('exthost:start', { workspaceFolders }),
+    stopHost: () => ipcRenderer.invoke('exthost:stop'),
+    activateExtension: (extensionId: string) =>
+      ipcRenderer.invoke('exthost:activate', extensionId),
+    executeCommand: (command: string, ...args: any[]) =>
+      ipcRenderer.invoke('exthost:executeCommand', { command, args }),
+    getHostStatus: () => ipcRenderer.invoke('exthost:status') as Promise<{
+      running: boolean
+      error: string | null
+      stderr: string[]
+    }>,
+    getRegisteredViews: () => ipcRenderer.invoke('exthost:getViews') as Promise<Array<{ viewId: string; type: string }>>,
+    resolveWebviewView: (viewId: string) => ipcRenderer.invoke('exthost:resolveView', viewId) as Promise<{ html: string } | null>,
+    sendWebviewMessage: (viewId: string, message: any) =>
+      ipcRenderer.invoke('exthost:webviewMessage', { viewId, message }),
+
+    onStatusBarUpdate: (callback: (item: any) => void) => {
+      const handler = (_e: any, item: any) => callback(item)
+      ipcRenderer.on('ext:statusBarUpdate', handler)
+      return () => ipcRenderer.removeListener('ext:statusBarUpdate', handler)
+    },
+    onStatusBarRemove: (callback: (id: string) => void) => {
+      const handler = (_e: any, id: string) => callback(id)
+      ipcRenderer.on('ext:statusBarRemove', handler)
+      return () => ipcRenderer.removeListener('ext:statusBarRemove', handler)
+    },
+    onStatusBarMessage: (callback: (text: string) => void) => {
+      const handler = (_e: any, text: string) => callback(text)
+      ipcRenderer.on('ext:statusBarMessage', handler)
+      return () => ipcRenderer.removeListener('ext:statusBarMessage', handler)
+    },
+    onShowMessage: (callback: (data: { level: string; message: string }) => void) => {
+      const handler = (_e: any, data: any) => callback(data)
+      ipcRenderer.on('ext:showMessage', handler)
+      return () => ipcRenderer.removeListener('ext:showMessage', handler)
+    },
+    onActivated: (callback: (data: any) => void) => {
+      const handler = (_e: any, data: any) => callback(data)
+      ipcRenderer.on('ext:activated', handler)
+      return () => ipcRenderer.removeListener('ext:activated', handler)
+    },
+    onError: (callback: (data: any) => void) => {
+      const handler = (_e: any, data: any) => callback(data)
+      ipcRenderer.on('ext:error', handler)
+      return () => ipcRenderer.removeListener('ext:error', handler)
+    },
+    onWebviewHtml: (callback: (data: { viewId: string; html: string }) => void) => {
+      const handler = (_e: any, data: any) => callback(data)
+      ipcRenderer.on('ext:webviewHtml', handler)
+      return () => ipcRenderer.removeListener('ext:webviewHtml', handler)
+    },
+    onWebviewMessage: (callback: (data: { viewId: string; message: any }) => void) => {
+      const handler = (_e: any, data: any) => callback(data)
+      ipcRenderer.on('ext:webviewMessage', handler)
+      return () => ipcRenderer.removeListener('ext:webviewMessage', handler)
+    },
+    onViewRegistered: (callback: (data: { viewId: string }) => void) => {
+      const handler = (_e: any, data: any) => callback(data)
+      ipcRenderer.on('ext:viewRegistered', handler)
+      return () => ipcRenderer.removeListener('ext:viewRegistered', handler)
+    },
+    onWebviewPanelCreated: (callback: (data: { panelId: string; viewType: string; title: string }) => void) => {
+      const handler = (_e: any, data: any) => callback(data)
+      ipcRenderer.on('ext:webviewPanelCreated', handler)
+      return () => ipcRenderer.removeListener('ext:webviewPanelCreated', handler)
+    },
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

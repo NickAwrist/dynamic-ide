@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type PanelType = 'editor' | 'terminal' | 'file-explorer' | 'git' | 'browser'
+export type PanelType = 'editor' | 'terminal' | 'file-explorer' | 'git' | 'browser' | 'extensions' | 'extension-view'
 
 export interface PanelState {
   id: string
@@ -32,7 +32,7 @@ interface IDEStore {
   getActiveWorkspace: () => WorkspaceState | undefined
 
   // Panel CRUD
-  addPanel: (type: PanelType) => void
+  addPanel: (type: PanelType, componentState?: Record<string, any>) => void
   removePanel: (panelId: string) => void
   updatePanel: (panelId: string, updates: Partial<PanelState>) => void
   bringToFront: (panelId: string) => void
@@ -58,6 +58,8 @@ const PANEL_DEFAULTS: Record<PanelType, { width: number; height: number }> = {
   'file-explorer': { width: 300, height: 500 },
   git: { width: 350, height: 500 },
   browser: { width: 900, height: 600 },
+  extensions: { width: 400, height: 550 },
+  'extension-view': { width: 500, height: 500 },
 }
 
 export const useIDEStore = create<IDEStore>()((set, get) => ({
@@ -104,7 +106,7 @@ export const useIDEStore = create<IDEStore>()((set, get) => ({
     return workspaces.find((w) => w.id === activeWorkspaceId)
   },
 
-  addPanel: (type) => {
+  addPanel: (type, componentState) => {
     const ws = get().getActiveWorkspace()
     if (!ws) return
 
@@ -120,7 +122,7 @@ export const useIDEStore = create<IDEStore>()((set, get) => ({
       width: defaults.width,
       height: defaults.height,
       zIndex: newZ,
-      componentState: {},
+      componentState: componentState || {},
     }
 
     set((s) => ({

@@ -3,6 +3,7 @@ import { useIDEStore } from './stores/workspace.store'
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher'
 import { Canvas } from './components/Canvas'
 import { AddComponentMenu } from './components/AddComponentMenu'
+import { StatusBar } from './components/StatusBar'
 
 export default function App() {
   const loadFromDisk = useIDEStore((s) => s.loadFromDisk)
@@ -13,6 +14,45 @@ export default function App() {
   useEffect(() => {
     loadFromDisk()
   }, [loadFromDisk])
+
+  // Expose active workspace root for extension host startup
+  useEffect(() => {
+    ;(window as any).__activeWorkspaceRoot = activeWs?.rootPath || null
+  }, [activeWs?.rootPath])
+
+  // Auto-start extension host when workspace loads, if extensions are installed
+  useEffect(() => {
+    if (!activeWs?.rootPath) return
+    let cancelled = false
+
+    const boot = async () => {
+      try {
+        const installed = await window.electronAPI.extensions.listInstalled()
+        if (cancelled || installed.length === 0) return
+        await window.electronAPI.extensions.startHost([activeWs.rootPath])
+      } catch {
+        // Extension host start is best-effort on boot
+      }
+    }
+    boot()
+
+    return () => { cancelled = true }
+  }, [activeWs?.rootPath])
+
+  // Listen for extension show-message events (from host → renderer)
+  useEffect(() => {
+    const cleanup = window.electronAPI.extensions.onShowMessage(
+      (data: { level: string; message: string }) => {
+        // Simple notification overlay — could be made fancier later
+        const el = document.createElement('div')
+        el.className = `ext-notification ext-notification--${data.level}`
+        el.textContent = data.message
+        document.body.appendChild(el)
+        setTimeout(() => el.remove(), 5000)
+      },
+    )
+    return cleanup
+  }, [])
 
   return (
     <div className="app">
@@ -51,6 +91,7 @@ export default function App() {
       <div className="app__canvas">
         <Canvas />
       </div>
+      <StatusBar />
     </div>
   )
 }
