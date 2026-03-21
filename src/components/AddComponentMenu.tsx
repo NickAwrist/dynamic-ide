@@ -1,9 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, ReactNode } from 'react'
 import { PanelType, useIDEStore } from '../stores/workspace.store'
 
-const COMPONENT_OPTIONS: { type: PanelType; label: string; desc: string }[] = [
+const COMPONENT_OPTIONS: { type: PanelType; label: string; desc: string; icon?: ReactNode; state?: any }[] = [
   { type: 'editor', label: 'Code Editor', desc: 'Edit files with syntax highlighting' },
-  { type: 'terminal', label: 'Terminal', desc: 'Full terminal emulator' },
+  { type: 'terminal', label: 'Shell', desc: 'Full terminal emulator', icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg> },
+  { type: 'terminal', label: 'Claude Code', desc: 'Run Anthropic Claude Code', icon: <img src="/icons/claude.png" width="16" height="16" alt="Claude" />, state: { command: 'claude' } },
+  { type: 'terminal', label: 'Gemini CLI', desc: 'Run Google Gemini', icon: <img src="/icons/gemini.png" width="16" height="16" alt="Gemini" />, state: { command: 'gemini' } },
+  { type: 'terminal', label: 'Codex', desc: 'Run OpenAI Codex', icon: <img src="/icons/codex.png" width="16" height="16" alt="Codex" />, state: { command: 'codex' } },
   { type: 'file-explorer', label: 'File Explorer', desc: 'Browse project files' },
   { type: 'git', label: 'Git', desc: 'Stage, commit, and view history' },
   { type: 'browser', label: 'Browser', desc: 'Embedded web browser with profile import' },
@@ -39,13 +42,13 @@ export function AddComponentMenu() {
     }
   }, [])
 
-  const handleOptionClick = useCallback((type: PanelType) => {
-    if (type === 'extension-view') {
+  const handleOptionClick = useCallback((opt: typeof COMPONENT_OPTIONS[0]) => {
+    if (opt.type === 'extension-view') {
       loadViews()
       setShowViewPicker(true)
       return
     }
-    addPanel(type)
+    addPanel(opt.type, opt.state)
     setOpen(false)
   }, [addPanel, loadViews])
 
@@ -66,12 +69,17 @@ export function AddComponentMenu() {
         <div className="add-menu__dropdown">
           {COMPONENT_OPTIONS.map((opt) => (
             <button
-              key={opt.type}
+              key={opt.label}
               className="add-menu__item"
-              onClick={() => handleOptionClick(opt.type)}
+              onClick={() => handleOptionClick(opt)}
             >
-              <span className="add-menu__item-label">{opt.label}</span>
-              <span className="add-menu__item-desc">{opt.desc}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {opt.icon && <span style={{ display: 'flex', color: 'var(--accent, #89b4fa)' }}>{opt.icon}</span>}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span className="add-menu__item-label">{opt.label}</span>
+                  <span className="add-menu__item-desc">{opt.desc}</span>
+                </div>
+              </div>
             </button>
           ))}
         </div>

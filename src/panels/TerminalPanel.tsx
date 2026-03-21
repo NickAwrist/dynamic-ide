@@ -152,8 +152,20 @@ export function TerminalPanel({ panel, workspace }: Props) {
         if (cancelled) return
         inst.ptyId = ptyId
 
+        let isReady = false
         inst.cleanupPtyListener = window.electronAPI.pty.onData((id, data) => {
-          if (id === ptyId) inst.terminal.write(data)
+          if (id === ptyId) {
+            inst.terminal.write(data)
+            
+            // Execute the initial command shortly after the terminal emits its first bytes (shell init)
+            if (!isReady && panel.componentState?.command) {
+              isReady = true;
+              let cmd = panel.componentState!.command;
+              setTimeout(() => {
+                window.electronAPI.pty.write(ptyId, cmd + '\r')
+              }, 200)
+            }
+          }
         })
 
         inst.terminal.onData((data) => {
