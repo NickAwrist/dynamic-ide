@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, ReactNode } from 'react'
 import { PanelType, useIDEStore } from '../stores/workspace.store'
 
-const COMPONENT_OPTIONS: { type: PanelType; label: string; desc: string; icon?: ReactNode; state?: any }[] = [
+const COMPONENT_OPTIONS: { type: PanelType | 'extensions'; label: string; desc: string; icon?: ReactNode; state?: any }[] = [
   { type: 'editor', label: 'Code Editor', desc: 'Edit files with syntax highlighting' },
   { type: 'terminal', label: 'Shell', desc: 'Full terminal emulator', icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg> },
   { type: 'terminal', label: 'Claude Code', desc: 'Run Anthropic Claude Code', icon: <img src="/icons/claude.png" width="16" height="16" alt="Claude" />, state: { command: 'claude' } },
@@ -10,7 +10,7 @@ const COMPONENT_OPTIONS: { type: PanelType; label: string; desc: string; icon?: 
   { type: 'file-explorer', label: 'File Explorer', desc: 'Browse project files' },
   { type: 'git', label: 'Git', desc: 'Stage, commit, and view history' },
   { type: 'browser', label: 'Browser', desc: 'Embedded web browser with profile import' },
-  { type: 'extensions', label: 'Extensions', desc: 'Browse and install VS Code extensions' },
+  { type: 'extensions', label: 'Extensions', desc: 'Browse and install VS Code extensions', icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> },
   { type: 'extension-view', label: 'Extension View', desc: 'Open a view provided by an extension' },
 ]
 
@@ -21,6 +21,7 @@ export function AddComponentMenu() {
   const menuRef = useRef<HTMLDivElement>(null)
   const addPanel = useIDEStore((s) => s.addPanel)
   const activeWs = useIDEStore((s) => s.activeWorkspaceId)
+  const setExtensionsOpen = useIDEStore((s) => s.setExtensionsOpen)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -43,14 +44,19 @@ export function AddComponentMenu() {
   }, [])
 
   const handleOptionClick = useCallback((opt: typeof COMPONENT_OPTIONS[0]) => {
+    if (opt.type === 'extensions') {
+      setExtensionsOpen(true)
+      setOpen(false)
+      return
+    }
     if (opt.type === 'extension-view') {
       loadViews()
       setShowViewPicker(true)
       return
     }
-    addPanel(opt.type, opt.state)
+    addPanel(opt.type as PanelType, opt.state)
     setOpen(false)
-  }, [addPanel, loadViews])
+  }, [addPanel, loadViews, setExtensionsOpen])
 
   const handleViewSelect = useCallback((viewId: string) => {
     addPanel('extension-view', { viewId, title: viewId })
@@ -62,8 +68,9 @@ export function AddComponentMenu() {
 
   return (
     <div className="add-menu" ref={menuRef}>
-      <button className="add-menu__trigger" onClick={() => setOpen(!open)}>
-        +
+      <button className="add-menu__trigger" style={{ width: 'auto', padding: '0 8px', gap: '4px' }} onClick={() => setOpen(!open)}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span style={{ fontSize: '11px', fontWeight: 600 }}>Add View</span>
       </button>
       {open && !showViewPicker && (
         <div className="add-menu__dropdown">

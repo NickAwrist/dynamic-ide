@@ -1229,349 +1229,628 @@ input, textarea {
   line-height: 1.4;
 }
 
-/* ===== EXTENSION PANEL ===== */
-.ext-panel {
+/* ===== EXTENSIONS MODAL ===== */
+.ext-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  backdrop-filter: blur(2px);
+}
+
+.ext-modal {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  width: 850px;
+  height: 600px;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: row;
+  box-shadow: 0 16px 48px var(--widget-shadow, rgba(0, 0, 0, 0.5));
+  overflow: hidden;
+}
+
+.ext-modal__sidebar {
+  width: 220px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.ext-modal__sidebar-header {
+  padding: 20px 16px;
+}
+.ext-modal__sidebar-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.ext-modal__tabs {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  flex: 1;
+}
+
+.ext-modal__tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+}
+.ext-modal__tab:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+.ext-modal__tab--active {
+  background: var(--bg-surface);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+.ext-modal__sidebar-footer {
+  padding: 16px;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ext-modal__host-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.ext-modal__host-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.ext-modal__host-dot--on { background: var(--success); }
+.ext-modal__host-dot--err { background: var(--danger); }
+
+.ext-modal__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  min-width: 0;
+}
+
+.ext-modal__main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+.ext-modal__view-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.ext-modal__close-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+.ext-modal__close-btn:hover {
+  background: var(--danger-tint-08);
+  color: var(--danger);
+}
+
+.ext-modal__content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.ext-modal__view {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
 }
 
-.ext-panel__tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border-color);
-  flex-shrink: 0;
-}
-
-.ext-panel__tab {
-  padding: 6px 14px;
-  font-size: 12px;
-  color: var(--text-muted);
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s;
-}
-.ext-panel__tab:hover {
-  color: var(--text-secondary);
-}
-.ext-panel__tab--active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
-.ext-panel__marketplace,
-.ext-panel__installed {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.ext-panel__search {
+.ext-modal__search {
   display: flex;
   align-items: center;
-  padding: 8px;
+  padding: 12px 24px;
+  gap: 10px;
   border-bottom: 1px solid var(--border-color);
-  flex-shrink: 0;
-  gap: 8px;
+  background: var(--bg-surface);
 }
 
-.ext-panel__search-input {
+.ext-modal__search-icon {
+  color: var(--text-muted);
+}
+
+.ext-modal__search-input {
   flex: 1;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 6px 10px;
-  font-size: 12px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
   outline: none;
   color: var(--text-primary);
-  transition: border-color 0.15s;
 }
-.ext-panel__search-input:focus {
-  border-color: var(--accent);
+.ext-modal__search-input::placeholder {
+  color: var(--text-muted);
 }
 
-.ext-panel__search-spinner {
+.ext-modal__search-spinner {
   width: 14px;
   height: 14px;
   border: 2px solid var(--border-color);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: ext-spin 0.6s linear infinite;
-  flex-shrink: 0;
 }
 
-@keyframes ext-spin {
-  to { transform: rotate(360deg); }
-}
-
-.ext-panel__results {
+.ext-modal__list {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 0;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.ext-panel__empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
+.ext-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  align-content: flex-start;
+  flex-direction: unset;
+}
+
+.ext-modal__empty {
+  text-align: center;
+  padding: 40px;
   color: var(--text-muted);
+  font-size: 13px;
+}
+
+.ext-modal__status {
+  padding: 8px 12px;
+  background: var(--success-tint-10);
+  color: var(--success);
   font-size: 12px;
   text-align: center;
-}
-
-.ext-panel__error {
-  padding: 8px 12px;
-  color: var(--danger);
-  font-size: 12px;
-  background: var(--danger-tint-08);
   border-bottom: 1px solid var(--border-color);
 }
 
-.ext-panel__item {
+.ext-modal__error {
+  padding: 8px 12px;
+  background: var(--danger-tint-08);
+  color: var(--danger);
+  font-size: 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* CARDS FOR MARKETPLACE/THEMES */
+.ext-modal__card {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
   cursor: pointer;
-  transition: background 0.1s;
-  border-bottom: 1px solid var(--border-tint-40);
+  transition: all 0.15s;
+  height: 170px;
 }
-.ext-panel__item:hover {
-  background: var(--bg-surface-hover);
+.ext-modal__card--theme {
+  height: auto;
+  gap: 12px;
+}
+.ext-modal__card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--widget-shadow, rgba(0,0,0,0.1));
+}
+.ext-modal__card--active {
+  border-color: var(--accent);
+  background: var(--accent-tint-10);
 }
 
-.ext-panel__item-icon-wrap {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+.ext-modal__theme-preview {
+  display: flex;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  height: 60px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px var(--widget-shadow, rgba(0,0,0,0.1));
+}
+.ext-modal__theme-preview-color1 {
+  flex: 1;
+}
+.ext-modal__theme-preview-color2 {
+  flex: 2;
 }
 
-.ext-panel__item-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 4px;
+.ext-modal__card-top {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ext-modal__card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
   object-fit: cover;
 }
-
-.ext-panel__item-icon--placeholder {
+.ext-modal__card-icon--placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-surface);
+  background: var(--bg-secondary);
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
-  border-radius: 4px;
 }
 
-.ext-panel__item-info {
+.ext-modal__card-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.ext-panel__item-name {
-  font-size: 13px;
-  font-weight: 500;
+.ext-modal__card-name {
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.ext-panel__item-publisher {
+.ext-modal__card-publisher {
   font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 1px;
-}
-
-.ext-panel__item-desc {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-top: 3px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.ext-panel__item-version {
-  font-size: 10px;
   color: var(--text-muted);
   margin-top: 2px;
 }
 
-.ext-panel__item-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.ext-panel__item-downloads {
-  font-size: 10px;
+.ext-modal__theme-type {
+  font-size: 11px;
   color: var(--text-muted);
+  margin-top: 2px;
 }
 
-.ext-panel__item-badge {
+.ext-modal__card-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+  line-height: 1.4;
+}
+
+.ext-modal__card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.ext-modal__card-downloads {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ext-modal__card-badge {
   font-size: 10px;
   color: var(--success);
   background: var(--success-tint-10);
   padding: 2px 8px;
   border-radius: 10px;
+  font-weight: 600;
+}
+
+/* LIST ITEM FOR INSTALLED */
+.ext-modal__list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.ext-modal__list-item-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.ext-modal__list-item-icon--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ext-modal__list-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ext-modal__list-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ext-modal__list-item-publisher {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.ext-modal__list-item-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.ext-modal__list-item-contrib {
+  font-size: 11px;
+  color: var(--accent);
+  margin-top: 6px;
   font-weight: 500;
 }
 
-.ext-panel__btn {
-  padding: 4px 12px;
-  font-size: 11px;
+.ext-modal__list-item-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ext-modal__btn-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.ext-modal__icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  background: transparent;
+  transition: all 0.15s;
+}
+.ext-modal__icon-btn:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+.ext-modal__icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ext-modal__icon-btn--primary {
+  color: var(--accent);
+}
+.ext-modal__icon-btn--primary:hover:not(:disabled) {
+  background: var(--accent-tint-10);
+  color: var(--accent-hover);
+}
+.ext-modal__icon-btn--danger:hover:not(:disabled) {
+  background: var(--danger-tint-08);
+  color: var(--danger);
+}
+
+/* BUTTONS */
+.ext-modal__btn {
+  padding: 6px 14px;
+  font-size: 12px;
   font-weight: 600;
   border-radius: 4px;
   transition: all 0.15s;
 }
 
-.ext-panel__btn--install {
+.ext-modal__btn--install {
   background: var(--accent);
   color: var(--bg-toolbar);
 }
-.ext-panel__btn--install:hover:not(:disabled) {
+.ext-modal__btn--install:hover:not(:disabled) {
   background: var(--accent-hover);
 }
-.ext-panel__btn--install:disabled {
+.ext-modal__btn--install:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.ext-panel__btn--installed {
-  background: var(--bg-surface);
+.ext-modal__btn--installed {
+  background: var(--bg-secondary);
   color: var(--success);
   cursor: default;
 }
 
-.ext-panel__btn--danger {
+.ext-modal__btn--activate {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+.ext-modal__btn--activate:hover {
+  background: var(--bg-surface-hover);
+}
+
+.ext-modal__btn--danger {
   background: transparent;
   color: var(--danger);
   border: 1px solid var(--danger);
 }
-.ext-panel__btn--danger:hover {
+.ext-modal__btn--danger:hover {
   background: var(--danger-tint-08);
 }
 
-.ext-panel__btn--sm {
-  padding: 3px 8px;
-  font-size: 10px;
-}
-
-.ext-panel__toggle-label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
+.ext-modal__btn--sm {
+  padding: 4px 10px;
   font-size: 11px;
 }
 
-.ext-panel__toggle-label input[type="checkbox"] {
+.ext-modal__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 4px 0;
+}
+
+.ext-modal__toggle input[type="checkbox"] {
   accent-color: var(--accent);
   cursor: pointer;
+  width: 14px;
+  height: 14px;
 }
 
-.ext-panel__toggle-text {
-  color: var(--text-muted);
+/* Detail View */
+.ext-modal__detail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
-
-/* Extension detail view */
-.ext-panel__detail-header {
-  padding: 8px;
+.ext-modal__detail-header {
+  padding: 12px 24px;
   border-bottom: 1px solid var(--border-color);
-  flex-shrink: 0;
 }
-
-.ext-panel__back-btn {
-  font-size: 12px;
+.ext-modal__back-btn {
+  font-size: 13px;
   color: var(--accent);
-  padding: 4px 8px;
+  font-weight: 500;
+  padding: 6px 12px;
   border-radius: 4px;
-  transition: background 0.15s;
 }
-.ext-panel__back-btn:hover {
+.ext-modal__back-btn:hover {
   background: var(--bg-surface-hover);
 }
 
-.ext-panel__detail {
+.ext-modal__detail-content {
   flex: 1;
-  padding: 16px;
   overflow-y: auto;
+  padding: 30px;
 }
 
-.ext-panel__detail-top {
+.ext-modal__detail-top {
   display: flex;
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: 24px;
+  margin-bottom: 24px;
 }
-
-.ext-panel__detail-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 8px;
+.ext-modal__detail-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
   object-fit: cover;
-  flex-shrink: 0;
+  box-shadow: 0 4px 12px var(--widget-shadow, rgba(0,0,0,0.1));
 }
-
-.ext-panel__detail-info {
+.ext-modal__detail-info {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  justify-content: center;
+  gap: 4px;
 }
-
-.ext-panel__detail-name {
-  font-size: 16px;
-  font-weight: 600;
+.ext-modal__detail-name {
+  font-size: 24px;
+  font-weight: 700;
   margin: 0;
+  color: var(--text-primary);
 }
-
-.ext-panel__detail-publisher {
+.ext-modal__detail-publisher {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.ext-modal__detail-version {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.ext-modal__detail-downloads {
   font-size: 12px;
   color: var(--text-muted);
 }
 
-.ext-panel__detail-version {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.ext-panel__detail-downloads {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.ext-panel__detail-desc {
-  font-size: 13px;
+.ext-modal__detail-desc {
+  font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.5;
-  margin-bottom: 12px;
+  line-height: 1.6;
+  margin-bottom: 20px;
 }
 
-.ext-panel__detail-categories {
+.ext-modal__detail-categories {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 16px;
-}
-
-.ext-panel__category-tag {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: var(--bg-surface);
-  color: var(--text-muted);
-  border: 1px solid var(--border-color);
-}
-
-.ext-panel__detail-actions {
-  display: flex;
   gap: 8px;
+  margin-bottom: 24px;
 }
+.ext-modal__category-tag {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.ext-modal__detail-actions {
+  display: flex;
+  gap: 12px;
+}
+
 
 /* ===== STATUS BAR ===== */
 .statusbar {

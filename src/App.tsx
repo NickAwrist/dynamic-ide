@@ -4,10 +4,12 @@ import { WorkspaceSwitcher } from './components/WorkspaceSwitcher'
 import { Canvas } from './components/Canvas'
 import { AddComponentMenu } from './components/AddComponentMenu'
 import { StatusBar } from './components/StatusBar'
+import { ExtensionsModal } from './components/ExtensionsModal'
 import { initializeDefaultTheme } from './utils/theme-engine'
 
 export default function App() {
   const loadFromDisk = useIDEStore((s) => s.loadFromDisk)
+  const isExtensionsOpen = useIDEStore((s) => s.isExtensionsOpen)
   const activeWs = useIDEStore((s) =>
     s.workspaces.find((w) => w.id === s.activeWorkspaceId),
   )
@@ -98,6 +100,7 @@ export default function App() {
         <Canvas />
       </div>
       <StatusBar />
+      {isExtensionsOpen && <ExtensionsModal />}
     </div>
   )
 }

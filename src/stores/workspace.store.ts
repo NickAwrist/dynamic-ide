@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type PanelType = 'editor' | 'terminal' | 'file-explorer' | 'git' | 'browser' | 'extensions' | 'extension-view'
+export type PanelType = 'editor' | 'terminal' | 'file-explorer' | 'git' | 'browser' | 'extension-view'
 
 export interface PanelState {
   id: string
@@ -24,12 +24,14 @@ interface IDEStore {
   workspaces: WorkspaceState[]
   activeWorkspaceId: string | null
   maxZIndex: number
+  isExtensionsOpen: boolean
 
   // Workspace CRUD
   addWorkspace: (name: string, rootPath: string) => void
   removeWorkspace: (id: string) => void
   setActiveWorkspace: (id: string) => void
   getActiveWorkspace: () => WorkspaceState | undefined
+  setExtensionsOpen: (val: boolean) => void
 
   // Panel CRUD
   addPanel: (type: PanelType, componentState?: Record<string, any>) => void
@@ -58,7 +60,6 @@ const PANEL_DEFAULTS: Record<PanelType, { width: number; height: number }> = {
   'file-explorer': { width: 300, height: 500 },
   git: { width: 350, height: 500 },
   browser: { width: 900, height: 600 },
-  extensions: { width: 400, height: 550 },
   'extension-view': { width: 500, height: 500 },
 }
 
@@ -66,6 +67,7 @@ export const useIDEStore = create<IDEStore>()((set, get) => ({
   workspaces: [],
   activeWorkspaceId: null,
   maxZIndex: 1,
+  isExtensionsOpen: false,
 
   _nextId: () => {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
@@ -104,6 +106,10 @@ export const useIDEStore = create<IDEStore>()((set, get) => ({
   getActiveWorkspace: () => {
     const { workspaces, activeWorkspaceId } = get()
     return workspaces.find((w) => w.id === activeWorkspaceId)
+  },
+
+  setExtensionsOpen: (val: boolean) => {
+    set({ isExtensionsOpen: val })
   },
 
   addPanel: (type, componentState) => {

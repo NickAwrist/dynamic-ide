@@ -6,7 +6,6 @@ import { TerminalPanel } from '../panels/TerminalPanel'
 import { FileExplorerPanel } from '../panels/FileExplorerPanel'
 import { GitPanel } from '../panels/GitPanel'
 import { BrowserPanel } from '../panels/BrowserPanel'
-import { ExtensionPanel } from '../panels/ExtensionPanel'
 import { ExtensionViewPanel } from '../panels/ExtensionViewPanel'
 import { snapPosition, snapResize, SnapGuide, Rect } from '../utils/snap'
 
@@ -16,7 +15,6 @@ const PANEL_TITLES: Record<string, string> = {
   'file-explorer': 'File Explorer',
   git: 'Git',
   browser: 'Browser',
-  extensions: 'Extensions',
   'extension-view': 'Extension View',
 }
 
@@ -60,8 +58,6 @@ export function ComponentPanel({ panel, workspace, canvasSize, onShowGuides, onC
         return <GitPanel panel={panel} workspace={workspace} />
       case 'browser':
         return <BrowserPanel panel={panel} workspace={workspace} />
-      case 'extensions':
-        return <ExtensionPanel />
       case 'extension-view':
         return <ExtensionViewPanel panel={{
           id: panel.id,
