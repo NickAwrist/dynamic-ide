@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { WebglAddon } from '@xterm/addon-webgl'
+import type { IDisposable } from '@xterm/xterm'
+import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { PanelState, WorkspaceState } from '../stores/workspace.store'
 
@@ -17,6 +19,9 @@ interface TerminalInstance {
   initialized: boolean
   cleanupPtyListener: (() => void) | null
   fitDebounce: ReturnType<typeof setTimeout> | null
+  fitRaf: number | null
+  ptyDataDisposable: IDisposable | null
+  ptyResizeDisposable: IDisposable | null
 }
 
 const terminalInstances = new Map<string, TerminalInstance>()
@@ -53,14 +58,30 @@ function getTerminalThemeFromCSS(): Record<string, string> {
   }
 }
 
-function debouncedFit(inst: TerminalInstance) {
-  if (inst.fitDebounce) clearTimeout(inst.fitDebounce)
-  inst.fitDebounce = setTimeout(() => {
+const MIN_FIT_PX = 16
+
+/** Fit after layout; skip when hidden or too small (avoids bad cols/rows and glitches). */
+function scheduleFit(inst: TerminalInstance, sizeEl: HTMLElement) {
+  if (inst.fitRaf != null) cancelAnimationFrame(inst.fitRaf)
+  inst.fitRaf = requestAnimationFrame(() => {
+    inst.fitRaf = null
+    const { width, height } = sizeEl.getBoundingClientRect()
+    if (width < MIN_FIT_PX || height < MIN_FIT_PX) return
     try {
       inst.fitAddon.fit()
-    } catch { /* ignore if not visible */ }
+      inst.terminal.refresh(0, inst.terminal.rows - 1)
+    } catch {
+      /* proposeDimensions can fail while not measurable */
+    }
+  })
+}
+
+function debouncedFit(inst: TerminalInstance, sizeEl: HTMLElement) {
+  if (inst.fitDebounce) clearTimeout(inst.fitDebounce)
+  inst.fitDebounce = setTimeout(() => {
     inst.fitDebounce = null
-  }, 80)
+    scheduleFit(inst, sizeEl)
+  }, 48)
 }
 
 function getOrCreateInstance(key: string): TerminalInstance {
@@ -86,6 +107,7 @@ function getOrCreateInstance(key: string): TerminalInstance {
   inst = {
     terminal, fitAddon, ptyId: null, hostEl,
     initialized: false, cleanupPtyListener: null, fitDebounce: null,
+    fitRaf: null, ptyDataDisposable: null, ptyResizeDisposable: null,
   }
   terminalInstances.set(key, inst)
   return inst
@@ -104,16 +126,29 @@ export function TerminalPanel({ panel, workspace }: Props) {
 
     if (!inst.initialized) {
       inst.terminal.open(inst.hostEl)
+      try {
+        inst.terminal.loadAddon(new WebglAddon())
+      } catch {
+        /* WebGL unavailable — keep default canvas/DOM renderer */
+      }
       inst.initialized = true
     }
 
     // Initial fit after layout settles
     const raf = requestAnimationFrame(() => {
-      setTimeout(() => debouncedFit(inst), 50)
+      setTimeout(() => debouncedFit(inst, container), 50)
     })
 
     return () => {
       cancelAnimationFrame(raf)
+      if (inst.fitRaf != null) {
+        cancelAnimationFrame(inst.fitRaf)
+        inst.fitRaf = null
+      }
+      if (inst.fitDebounce) {
+        clearTimeout(inst.fitDebounce)
+        inst.fitDebounce = null
+      }
       if (inst.hostEl.parentElement === container) {
         container.removeChild(inst.hostEl)
       }
@@ -174,11 +209,12 @@ export function TerminalPanel({ panel, workspace }: Props) {
           }
         })
 
-        inst.terminal.onData((data) => {
+        inst.ptyDataDisposable?.dispose()
+        inst.ptyResizeDisposable?.dispose()
+        inst.ptyDataDisposable = inst.terminal.onData((data) => {
           window.electronAPI.pty.write(ptyId, data)
         })
-
-        inst.terminal.onResize(({ cols, rows }) => {
+        inst.ptyResizeDisposable = inst.terminal.onResize(({ cols, rows }) => {
           window.electronAPI.pty.resize(ptyId, cols, rows)
         })
       } catch (err) {
@@ -191,6 +227,10 @@ export function TerminalPanel({ panel, workspace }: Props) {
       cancelled = true
       const inst = terminalInstances.get(instanceKey)
       if (!inst) return
+      inst.ptyDataDisposable?.dispose()
+      inst.ptyDataDisposable = null
+      inst.ptyResizeDisposable?.dispose()
+      inst.ptyResizeDisposable = null
       if (inst.cleanupPtyListener) {
         inst.cleanupPtyListener()
         inst.cleanupPtyListener = null
@@ -202,16 +242,34 @@ export function TerminalPanel({ panel, workspace }: Props) {
     }
   }, [instanceKey, workspace.rootPath])
 
-  // Refit on container resize (debounced so drags don't spam)
+  // Refit on container resize / visibility (debounced so drags don't spam)
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
     const inst = terminalInstances.get(instanceKey)
     if (!inst) return
 
-    const ro = new ResizeObserver(() => debouncedFit(inst))
+    const onWin = () => debouncedFit(inst, container)
+    window.addEventListener('resize', onWin)
+
+    const ro = new ResizeObserver(() => debouncedFit(inst, container))
     ro.observe(container)
-    return () => ro.disconnect()
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting && e.intersectionRatio > 0)) {
+          debouncedFit(inst, container)
+        }
+      },
+      { threshold: [0, 0.01, 1] },
+    )
+    io.observe(container)
+
+    return () => {
+      window.removeEventListener('resize', onWin)
+      ro.disconnect()
+      io.disconnect()
+    }
   }, [instanceKey])
 
   return (
