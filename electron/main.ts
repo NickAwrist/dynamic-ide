@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, protocol, shell, screen } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { PtyService } from './services/pty.service'
@@ -34,6 +34,70 @@ const extensionService = new ExtensionService()
 const extensionHostService = new ExtensionHostService()
 
 const THEME_CHROME_FILENAME = 'theme-chrome.json'
+const WINDOW_STATE_FILENAME = 'window-state.json'
+
+const DEFAULT_WINDOW_WIDTH = 1400
+const DEFAULT_WINDOW_HEIGHT = 900
+const WINDOW_MIN_WIDTH = 800
+const WINDOW_MIN_HEIGHT = 600
+
+interface PersistedWindowState {
+  x: number
+  y: number
+  width: number
+  height: number
+  isMaximized: boolean
+}
+
+function readPersistedWindowState(): PersistedWindowState | null {
+  try {
+    const fp = path.join(app.getPath('userData'), WINDOW_STATE_FILENAME)
+    if (!fs.existsSync(fp)) return null
+    const j = JSON.parse(fs.readFileSync(fp, 'utf-8')) as Partial<PersistedWindowState>
+    const width = Number(j.width)
+    const height = Number(j.height)
+    const x = Number(j.x)
+    const y = Number(j.y)
+    if (![width, height, x, y].every((n) => Number.isFinite(n))) return null
+    if (width < WINDOW_MIN_WIDTH || height < WINDOW_MIN_HEIGHT) return null
+    return {
+      x,
+      y,
+      width,
+      height,
+      isMaximized: Boolean(j.isMaximized),
+    }
+  } catch {
+    return null
+  }
+}
+
+function windowStateIntersectsDisplay(rect: Electron.Rectangle): boolean {
+  return screen.getAllDisplays().some((d) => {
+    const wa = d.workArea
+    const right = rect.x + rect.width
+    const bottom = rect.y + rect.height
+    return right > wa.x && rect.x < wa.x + wa.width && bottom > wa.y && rect.y < wa.y + wa.height
+  })
+}
+
+function writePersistedWindowState(win: BrowserWindow) {
+  try {
+    const isMaximized = win.isMaximized()
+    const b = win.getNormalBounds()
+    const state: PersistedWindowState = {
+      x: b.x,
+      y: b.y,
+      width: Math.max(WINDOW_MIN_WIDTH, b.width),
+      height: Math.max(WINDOW_MIN_HEIGHT, b.height),
+      isMaximized,
+    }
+    const fp = path.join(app.getPath('userData'), WINDOW_STATE_FILENAME)
+    fs.writeFileSync(fp, JSON.stringify(state), 'utf-8')
+  } catch {
+    /* ignore */
+  }
+}
 
 function readThemeChromeBackground(): string {
   try {
@@ -52,11 +116,25 @@ function readThemeChromeBackground(): string {
 }
 
 function createWindow() {
+  const saved = readPersistedWindowState()
+  const useSaved = !!(saved && windowStateIntersectsDisplay(saved))
+  const rect = useSaved
+    ? saved!
+    : {
+        x: undefined as number | undefined,
+        y: undefined as number | undefined,
+        width: DEFAULT_WINDOW_WIDTH,
+        height: DEFAULT_WINDOW_HEIGHT,
+        isMaximized: false,
+      }
+
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 800,
-    minHeight: 600,
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height,
+    minWidth: WINDOW_MIN_WIDTH,
+    minHeight: WINDOW_MIN_HEIGHT,
     frame: false,
     titleBarStyle: 'hidden',
     backgroundColor: readThemeChromeBackground(),
@@ -68,11 +146,19 @@ function createWindow() {
     },
   })
 
+  if (useSaved && saved!.isMaximized) {
+    mainWindow.maximize()
+  }
+
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
+
+  mainWindow.on('close', () => {
+    if (mainWindow) writePersistedWindowState(mainWindow)
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null
