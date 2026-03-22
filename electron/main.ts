@@ -33,6 +33,24 @@ const browserService = new BrowserService()
 const extensionService = new ExtensionService()
 const extensionHostService = new ExtensionHostService()
 
+const THEME_CHROME_FILENAME = 'theme-chrome.json'
+
+function readThemeChromeBackground(): string {
+  try {
+    const fp = path.join(app.getPath('userData'), THEME_CHROME_FILENAME)
+    if (!fs.existsSync(fp)) return '#1e1e2e'
+    const raw = fs.readFileSync(fp, 'utf-8')
+    const j = JSON.parse(raw) as { backgroundColor?: string }
+    const c = j.backgroundColor
+    if (typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c.trim())) {
+      return c.trim()
+    }
+  } catch {
+    /* ignore */
+  }
+  return '#1e1e2e'
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -41,7 +59,7 @@ function createWindow() {
     minHeight: 600,
     frame: false,
     titleBarStyle: 'hidden',
-    backgroundColor: '#1e1e2e',
+    backgroundColor: readThemeChromeBackground(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -174,6 +192,18 @@ function registerIpcHandlers() {
     else mainWindow?.maximize()
   })
   ipcMain.on('window:close', () => mainWindow?.close())
+  ipcMain.handle('window:syncChromeBackground', (_e, hex: unknown) => {
+    if (typeof hex !== 'string') return
+    const trimmed = hex.trim()
+    if (!/^#[0-9a-fA-F]{6}$/.test(trimmed)) return
+    try {
+      const fp = path.join(app.getPath('userData'), THEME_CHROME_FILENAME)
+      fs.writeFileSync(fp, JSON.stringify({ backgroundColor: trimmed }), 'utf-8')
+    } catch {
+      /* ignore */
+    }
+    mainWindow?.setBackgroundColor(trimmed)
+  })
 
   // PTY
   ipcMain.handle('pty:create', (_e, { cols, rows, cwd }: { cols: number; rows: number; cwd: string }) => {

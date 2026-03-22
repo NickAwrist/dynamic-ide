@@ -4,6 +4,11 @@ import { createUiLogger, Scopes } from '../lib/logger'
 
 const log = createUiLogger(Scopes.uiPanelT3)
 
+function readEditorBackgroundHex(): string {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim()
+  return v || '#1e1e2e'
+}
+
 /** Poll until TCP accepts HTTP on this port (npx/t3 can take minutes on first run). Uses no-cors so CORS headers are not required. */
 async function waitForLocalServer(
   port: number,
@@ -141,7 +146,12 @@ export function T3CodePanel({ panel, workspace }: Props) {
     wv.style.border = 'none'
     wv.style.display = 'flex'
     wv.style.flex = '1'
-    wv.style.backgroundColor = '#1e1e2e'
+    wv.style.backgroundColor = readEditorBackgroundHex()
+
+    const onThemeChange = () => {
+      wv.style.backgroundColor = readEditorBackgroundHex()
+    }
+    window.addEventListener('ide-theme-change', onThemeChange)
 
     const onFailLoad = (e: { errorCode?: number; isMainFrame?: boolean; validatedURL?: string }) => {
       if (e.isMainFrame === false) return
@@ -173,6 +183,7 @@ export function T3CodePanel({ panel, workspace }: Props) {
     webviewRef.current = wv
 
     return () => {
+      window.removeEventListener('ide-theme-change', onThemeChange)
       wv.removeEventListener('did-fail-load', onFailLoad as any)
       wv.removeEventListener('did-finish-load', onFinishLoad)
       if (wv.parentElement) {
@@ -194,30 +205,30 @@ export function T3CodePanel({ panel, workspace }: Props) {
 
   if (startTimedOut && !url) {
     return (
-      <div style={{ padding: '20px', fontFamily: "'Cascadia Code', 'Consolas', monospace", color: '#cdd6f4', display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#1e1e2e', fontSize: '13px' }}>
-        <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>T3 Code did not become ready in time</h3>
-        <p style={{ margin: '0 0 16px 0', color: '#a6adc8' }}>Check the log below, then use the panel reload action or restart the workspace.</p>
-        <div style={{ flex: 1, backgroundColor: '#11111b', padding: '16px', borderRadius: '6px', overflowY: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-          {logs.join('')}
-        </div>
+      <div className="t3-code-panel">
+        <h3 className="t3-code-panel__title">T3 Code did not become ready in time</h3>
+        <p className="t3-code-panel__lead">
+          Check the log below, then use the panel reload action or restart the workspace.
+        </p>
+        <div className="t3-code-panel__log">{logs.join('')}</div>
       </div>
     )
   }
 
   if (isStarting || !url) {
     return (
-      <div style={{ padding: '20px', fontFamily: "'Cascadia Code', 'Consolas', monospace", color: '#cdd6f4', display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#1e1e2e', fontSize: '13px' }}>
-        <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Starting T3 Code Server...</h3>
-        <p style={{ margin: '0 0 16px 0', color: '#a6adc8' }}>Waiting for the server to accept connections (first run can take several minutes).</p>
-        <div style={{ flex: 1, backgroundColor: '#11111b', padding: '16px', borderRadius: '6px', overflowY: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-          {logs.join('')}
-        </div>
+      <div className="t3-code-panel">
+        <h3 className="t3-code-panel__title">Starting T3 Code Server...</h3>
+        <p className="t3-code-panel__lead">
+          Waiting for the server to accept connections (first run can take several minutes).
+        </p>
+        <div className="t3-code-panel__log">{logs.join('')}</div>
       </div>
     )
   }
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1e1e2e' }}>
+    <div className="t3-code-panel__frame">
       <div ref={containerRef} style={{ flex: 1, display: 'flex' }} />
     </div>
   )

@@ -147,6 +147,92 @@ const CSS_VAR_MAP: Record<string, string> = {
   'gitDecoration.conflictingResourceForeground':  '--git-conflict',
 }
 
+/** All CSS custom properties set by applyFullTheme (direct + derived). Used to clear stale values after reload/hydration. */
+const DERIVED_CSS_VAR_KEYS = [
+  '--accent',
+  '--accent-hover',
+  '--bg-surface',
+  '--bg-surface-hover',
+  '--success',
+  '--warning',
+  '--danger',
+  '--text-muted',
+  '--text-secondary',
+  '--accent-tint-10',
+  '--accent-tint-06',
+  '--accent-tint-03',
+  '--danger-tint-15',
+  '--danger-tint-08',
+  '--success-tint-10',
+  '--border-tint-40',
+  '--radius',
+] as const
+
+const MANAGED_CSS_VAR_NAMES: string[] = [
+  ...new Set<string>([...Object.values(CSS_VAR_MAP), ...DERIVED_CSS_VAR_KEYS]),
+]
+
+const THEME_CSS_CACHE_KEY = 'dynamic-ide-theme-css-cache'
+const THEME_CSS_CACHE_VERSION = 1
+
+export interface ThemeCssCachePayload {
+  v: number
+  themeType: string
+  vars: Record<string, string>
+}
+
+function clearManagedThemeCssVars(root: HTMLElement): void {
+  for (const name of MANAGED_CSS_VAR_NAMES) {
+    root.style.removeProperty(name)
+  }
+}
+
+/** Restore last session theme variables before first paint. Returns true if cache was applied. */
+export function hydrateThemeFromCache(): boolean {
+  try {
+    const raw = localStorage.getItem(THEME_CSS_CACHE_KEY)
+    if (!raw) return false
+    const parsed = JSON.parse(raw) as Partial<ThemeCssCachePayload>
+    if (
+      parsed.v !== THEME_CSS_CACHE_VERSION ||
+      !parsed.vars ||
+      typeof parsed.vars !== 'object'
+    ) {
+      return false
+    }
+    const root = document.documentElement
+    for (const [k, v] of Object.entries(parsed.vars)) {
+      if (typeof v === 'string' && v.length > 0) {
+        root.style.setProperty(k, v)
+      }
+    }
+    if (parsed.themeType) {
+      root.dataset.themeType = parsed.themeType
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
+function normalizeHexForChrome(hex: string): string | null {
+  let h = hex.trim()
+  if (!h.startsWith('#')) h = `#${h}`
+  if (/^#[0-9a-fA-F]{6}$/.test(h)) return h
+  if (/^#[0-9a-fA-F]{8}$/.test(h)) return h.slice(0, 7)
+  return null
+}
+
+function syncWindowChromeFromEditorBackground(editorBackground: string): void {
+  const hex = normalizeHexForChrome(editorBackground)
+  if (!hex) return
+  try {
+    void window.electronAPI?.window?.syncChromeBackground?.(hex)
+  } catch {
+    /* ignore */
+  }
+}
+
 // ─── Color Utilities ─────────────────────────────────────────────────────────
 
 function hexToHSL(hex: string): { h: number; s: number; l: number; a: number } {
@@ -474,6 +560,24 @@ let themeVersion = 0
 const allSetVars = new Set<string>()
 let globalMonaco: typeof import('monaco-editor') | null = null
 
+function persistThemeCache(root: HTMLElement, themeType: string): void {
+  const vars: Record<string, string> = {}
+  for (const name of allSetVars) {
+    const val = root.style.getPropertyValue(name).trim()
+    if (val) vars[name] = val
+  }
+  try {
+    const payload: ThemeCssCachePayload = {
+      v: THEME_CSS_CACHE_VERSION,
+      themeType,
+      vars,
+    }
+    localStorage.setItem(THEME_CSS_CACHE_KEY, JSON.stringify(payload))
+  } catch {
+    /* quota / private mode */
+  }
+}
+
 export function getCurrentThemeId(): string | null {
   return currentThemeId
 }
@@ -494,8 +598,8 @@ export function applyFullTheme(
 ): void {
   const root = document.documentElement
 
-  // 0. Clear ALL previously set CSS variables so no stale colours leak
-  for (const v of allSetVars) root.style.removeProperty(v)
+  // 0. Clear managed CSS variables (in-memory set is empty after reload; hydrate needs full clear)
+  clearManagedThemeCssVars(root)
   allSetVars.clear()
 
   // Determine theme type early so resolveColors knows light vs dark
@@ -572,7 +676,7 @@ export function applyFullTheme(
     }
   }
 
-  // 6. Persist
+  // 6. Persist extension theme selection
   if (themeInfo) {
     localStorage.setItem('dynamic-ide-theme', JSON.stringify({
       extensionId: themeInfo.extensionId,
@@ -581,6 +685,9 @@ export function applyFullTheme(
       themePath: themeInfo.themePath,
     }))
   }
+
+  persistThemeCache(root, themeType)
+  syncWindowChromeFromEditorBackground(colors['editor.background'] || '#1e1e2e')
 }
 
 // ─── Theme Initialization ────────────────────────────────────────────────────

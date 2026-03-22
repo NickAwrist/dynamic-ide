@@ -86,6 +86,7 @@ export interface ElectronAPI {
     minimize: () => void
     maximize: () => void
     close: () => void
+    syncChromeBackground: (hex: string) => Promise<void>
   }
   pty: {
     create: (opts: { cols: number; rows: number; cwd: string }) => Promise<string>

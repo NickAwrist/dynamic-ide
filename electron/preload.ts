@@ -6,6 +6,8 @@ const api = {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
+    syncChromeBackground: (hex: string) =>
+      ipcRenderer.invoke('window:syncChromeBackground', hex) as Promise<void>,
   },
 
   // PTY terminal
