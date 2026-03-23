@@ -76,3 +76,19 @@
   opacity: 1;
 }
 
+/* macOS: native traffic lights (hiddenInset); reserve leading space — brand lives on the right */
+.titlebar--mac {
+  padding-left: 0;
+}
+
+.titlebar--mac .titlebar__right {
+  padding-right: 12px;
+  gap: 10px;
+}
+
+.titlebar__left--mac {
+  min-width: 76px;
+  max-width: 76px;
+  flex-shrink: 0;
+}
+

@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 const api = {
+  platform: process.platform,
+
   // Window controls
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),

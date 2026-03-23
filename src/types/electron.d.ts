@@ -82,6 +82,8 @@ export interface AppLogEntry {
 }
 
 export interface ElectronAPI {
+  /** `process.platform` from the main process (e.g. `darwin`, `win32`). */
+  platform: NodeJS.Platform
   window: {
     minimize: () => void
     maximize: () => void

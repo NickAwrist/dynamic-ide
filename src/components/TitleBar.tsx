@@ -11,19 +11,21 @@ interface Props {
 export function TitleBar({ showAddComponentMenu }: Props) {
   const setExtensionsOpen = useIDEStore((s) => s.setExtensionsOpen)
   const [maximized, setMaximized] = useState(false)
+  const isMac = window.electronAPI?.platform === 'darwin'
 
   useEffect(() => {
+    if (isMac) return
     const w = window.electronAPI?.window
     if (!w?.isMaximized || !w?.onMaximizedChange) return
     void w.isMaximized().then(setMaximized)
     return w.onMaximizedChange(setMaximized)
-  }, [])
+  }, [isMac])
 
   return (
-    <div className="titlebar">
+    <div className={`titlebar${isMac ? ' titlebar--mac' : ''}`}>
       <div className="titlebar__drag-region" />
-      <div className="titlebar__left">
-        <span className="titlebar__brand">Orbis</span>
+      <div className={`titlebar__left${isMac ? ' titlebar__left--mac' : ''}`}>
+        {!isMac && <span className="titlebar__brand">Orbis</span>}
       </div>
       <div className="titlebar__center">
         <WorkspaceSwitcher />
@@ -48,39 +50,42 @@ export function TitleBar({ showAddComponentMenu }: Props) {
             </button>
           </>
         )}
-        <div className="titlebar__controls">
-          <button
-            type="button"
-            className="titlebar__btn"
-            title="Minimize"
-            aria-label="Minimize"
-            onClick={() => window.electronAPI.window.minimize()}
-          >
-            <IconChromeMinimize width={15} height={15} />
-          </button>
-          <button
-            type="button"
-            className="titlebar__btn"
-            title={maximized ? 'Restore' : 'Maximize'}
-            aria-label={maximized ? 'Restore' : 'Maximize'}
-            onClick={() => window.electronAPI.window.maximize()}
-          >
-            {maximized ? (
-              <IconChromeRestore width={15} height={15} />
-            ) : (
-              <IconChromeMaximize width={15} height={15} />
-            )}
-          </button>
-          <button
-            type="button"
-            className="titlebar__btn titlebar__btn--close"
-            title="Close"
-            aria-label="Close"
-            onClick={() => window.electronAPI.window.close()}
-          >
-            <IconClose size="md" width={15} height={15} />
-          </button>
-        </div>
+        {isMac && <span className="titlebar__brand">Orbis</span>}
+        {!isMac && (
+          <div className="titlebar__controls">
+            <button
+              type="button"
+              className="titlebar__btn"
+              title="Minimize"
+              aria-label="Minimize"
+              onClick={() => window.electronAPI.window.minimize()}
+            >
+              <IconChromeMinimize width={15} height={15} />
+            </button>
+            <button
+              type="button"
+              className="titlebar__btn"
+              title={maximized ? 'Restore' : 'Maximize'}
+              aria-label={maximized ? 'Restore' : 'Maximize'}
+              onClick={() => window.electronAPI.window.maximize()}
+            >
+              {maximized ? (
+                <IconChromeRestore width={15} height={15} />
+              ) : (
+                <IconChromeMaximize width={15} height={15} />
+              )}
+            </button>
+            <button
+              type="button"
+              className="titlebar__btn titlebar__btn--close"
+              title="Close"
+              aria-label="Close"
+              onClick={() => window.electronAPI.window.close()}
+            >
+              <IconClose size="md" width={15} height={15} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -47,6 +47,12 @@ export type AddPanelMenuSubmenu = {
 
 export type AddPanelMenuEntry = AddPanelMenuLeaf | AddPanelMenuSubmenu
 
+/** Public-folder icons; must respect Vite `base` (e.g. `./`) so packaged Electron file:// loads work. */
+function panelMenuIconSrc(filename: string): string {
+  const base = import.meta.env.BASE_URL
+  return `${base}${base.endsWith('/') ? '' : '/'}icons/${filename}`
+}
+
 export const ADD_PANEL_MENU_ENTRIES: AddPanelMenuEntry[] = [
   {
     kind: 'leaf',
@@ -76,28 +82,28 @@ export const ADD_PANEL_MENU_ENTRIES: AddPanelMenuEntry[] = [
         key: 'claude',
         label: 'Claude Code',
         desc: 'Run Anthropic Claude Code',
-        icon: <img src="/icons/claude.png" width={16} height={16} alt="Claude" />,
+        icon: <img src={panelMenuIconSrc('claude.png')} width={16} height={16} alt="Claude" />,
         pick: { kind: 'panel', panelType: 'terminal', state: { command: 'claude' } },
       },
       {
         key: 'gemini',
         label: 'Gemini CLI',
         desc: 'Run Google Gemini',
-        icon: <img src="/icons/gemini.png" width={16} height={16} alt="Gemini" />,
+        icon: <img src={panelMenuIconSrc('gemini.png')} width={16} height={16} alt="Gemini" />,
         pick: { kind: 'panel', panelType: 'terminal', state: { command: 'gemini' } },
       },
       {
         key: 'codex',
         label: 'Codex',
         desc: 'Run OpenAI Codex',
-        icon: <img src="/icons/codex.png" width={16} height={16} alt="Codex" />,
+        icon: <img src={panelMenuIconSrc('codex.png')} width={16} height={16} alt="Codex" />,
         pick: { kind: 'panel', panelType: 'terminal', state: { command: 'codex' } },
       },
       {
         key: 't3-code',
         label: 'T3 Code',
         desc: 'Graphical panel for the T3 coding agent',
-        icon: <img src="/icons/t3_code.png" width={16} height={16} alt="T3 Code" />,
+        icon: <img src={panelMenuIconSrc('t3_code.png')} width={16} height={16} alt="T3 Code" />,
         pick: { kind: 'panel', panelType: 't3-code' },
       },
     ],

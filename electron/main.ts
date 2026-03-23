@@ -146,7 +146,8 @@ function createWindow() {
     minWidth: WINDOW_MIN_WIDTH,
     minHeight: WINDOW_MIN_HEIGHT,
     frame: false,
-    titleBarStyle: 'hidden',
+    // macOS: inset traffic lights so they do not overlap custom UI; Windows keeps hidden chrome.
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     backgroundColor: readThemeChromeBackground(),
     ...(appIcon ? { icon: appIcon } : {}),
     webPreferences: {
