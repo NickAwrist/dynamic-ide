@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react'
 import Editor, { type Monaco } from '@monaco-editor/react'
 import { PanelState, WorkspaceState, useIDEStore } from '../stores/workspace.store'
+import { configureMonacoTypeScript } from '../utils/monaco-typescript'
 import { applyFullTheme, getSavedThemeInfo, getCurrentThemeId, registerMonaco } from '../utils/theme-engine'
 import { createUiLogger, Scopes } from '../lib/logger'
 import { IconClose } from '../components/ui/ChromeIcons'
@@ -191,9 +192,11 @@ export function EditorPanel({ panel, workspace }: Props) {
       {currentTab ? (
         <Editor
           height="100%"
+          path={currentTab.filePath}
           language={getLanguage(currentTab.name)}
           value={currentTab.content}
           theme={monacoTheme}
+          beforeMount={configureMonacoTypeScript}
           onMount={handleEditorMount}
           onChange={(value) => {
             const newTabs = tabs.map((t, i) =>

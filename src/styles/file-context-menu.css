@@ -13,20 +13,32 @@
 }
 
 .file-context-menu__item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
-  padding: 6px 12px;
+  padding: 6px 10px;
   text-align: left;
   font-size: 12px;
   border-radius: 3px;
   transition: background var(--motion-duration-sm) var(--motion-ease-standard);
 }
+
+.file-context-menu__icon {
+  font-size: 14px !important;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
 .file-context-menu__item:hover {
   background: var(--bg-surface-hover);
 }
 .file-context-menu__item--danger:hover {
   background: var(--danger-tint-15);
   color: var(--danger);
+}
+.file-context-menu__item--danger:hover .file-context-menu__icon {
+  color: inherit;
 }
 
 .file-context-menu__divider {

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
+import { Codicon } from '../../components/codicon/Codicon'
 import { PanelState, WorkspaceState, useIDEStore } from '../../stores/workspace.store'
 import { FileContextMenu } from './FileContextMenu'
 import { FileTree } from './FileTree'
 import type { ContextAction, ContextMenu, InlineInputState, TreeNode } from './fileTreeTypes'
-import { getPathSep, updateTreeAt } from './fileTreeUtils'
+import { getPathSep, reconcileTree, updateTreeAt } from './fileTreeUtils'
 import { createUiLogger, Scopes } from '../../lib/logger'
 
 const log = createUiLogger(Scopes.uiPanelExplorer)
@@ -21,6 +22,8 @@ export function FileExplorerPanel({ panel, workspace }: Props) {
   const [inputValue, setInputValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const treeRef = useRef<TreeNode[]>([])
+  treeRef.current = tree
 
   const loadDir = useCallback(async (dirPath: string): Promise<TreeNode[]> => {
     try {
@@ -35,8 +38,8 @@ export function FileExplorerPanel({ panel, workspace }: Props) {
   }, [])
 
   const refreshRoot = useCallback(async () => {
-    const entries = await loadDir(workspace.rootPath)
-    setTree(entries)
+    const next = await reconcileTree(treeRef.current, workspace.rootPath, loadDir)
+    setTree(next)
     setLoading(false)
   }, [workspace.rootPath, loadDir])
 
@@ -207,9 +210,10 @@ export function FileExplorerPanel({ panel, workspace }: Props) {
       onContextMenu={(e) => handleContextMenu(e, null, workspace.rootPath)}
     >
       <div className="file-explorer-panel__header">
-        <span className="file-explorer-panel__root">
-          {workspace.rootPath.split(/[\\/]/).pop()}
-        </span>
+        <div className="file-explorer-panel__title-block" title={workspace.rootPath}>
+          <span className="file-explorer-panel__label">Explorer</span>
+          <span className="file-explorer-panel__root">{workspace.rootPath.split(/[\\/]/).pop()}</span>
+        </div>
         <div className="file-explorer-panel__actions">
           <button
             type="button"
@@ -220,7 +224,7 @@ export function FileExplorerPanel({ panel, workspace }: Props) {
               setInputValue('')
             }}
           >
-            +
+            <Codicon name="new-file" />
           </button>
           <button
             type="button"
@@ -231,10 +235,10 @@ export function FileExplorerPanel({ panel, workspace }: Props) {
               setInputValue('')
             }}
           >
-            +&#x1F4C1;
+            <Codicon name="new-folder" />
           </button>
           <button type="button" className="file-explorer-panel__action-btn" title="Refresh" onClick={refreshRoot}>
-            &#x21BB;
+            <Codicon name="refresh" />
           </button>
         </div>
       </div>

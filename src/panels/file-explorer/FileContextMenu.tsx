@@ -1,3 +1,4 @@
+import { Codicon } from '../../components/codicon/Codicon'
 import type { ContextAction } from './fileTreeTypes'
 
 interface Props {
@@ -15,23 +16,27 @@ export function FileContextMenu({ x, y, hasNode, onAction }: Props) {
       onMouseDown={(e) => e.stopPropagation()}
     >
       <button type="button" className="file-context-menu__item" onClick={() => onAction('newFile')}>
-        New File
+        <Codicon name="new-file" className="file-context-menu__icon" />
+        <span>New File</span>
       </button>
       <button type="button" className="file-context-menu__item" onClick={() => onAction('newFolder')}>
-        New Folder
+        <Codicon name="new-folder" className="file-context-menu__icon" />
+        <span>New Folder</span>
       </button>
       {hasNode && (
         <>
           <div className="file-context-menu__divider" />
           <button type="button" className="file-context-menu__item" onClick={() => onAction('rename')}>
-            Rename
+            <Codicon name="edit" className="file-context-menu__icon" />
+            <span>Rename</span>
           </button>
           <button
             type="button"
             className="file-context-menu__item file-context-menu__item--danger"
             onClick={() => onAction('delete')}
           >
-            Delete
+            <Codicon name="trash" className="file-context-menu__icon" />
+            <span>Delete</span>
           </button>
         </>
       )}

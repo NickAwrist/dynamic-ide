@@ -1,5 +1,7 @@
 import type { MouseEvent, ReactNode, RefObject } from 'react'
+import { Codicon } from '../../components/codicon/Codicon'
 import type { InlineInputState, TreeNode } from './fileTreeTypes'
+import { fileIconForFileName } from './fileExplorerIcons'
 import { getPathSep } from './fileTreeUtils'
 
 interface FileTreeProps {
@@ -29,9 +31,18 @@ export function FileTree({
   openFileInEditor,
   handleContextMenu,
 }: FileTreeProps) {
+  const rootInlineNew =
+    inlineInput &&
+    (inlineInput.action === 'newFile' || inlineInput.action === 'newFolder') &&
+    inlineInput.parentPath === workspaceRootPath
+
   const renderInlineInput = (depth: number) => (
     <div className="file-node file-node--input" style={{ paddingLeft: depth * 16 + 8 }}>
-      <span className="file-node__icon">{inlineInput?.action === 'newFolder' ? '+' : ' '}</span>
+      <span className="file-node__twisty file-node__twisty--blank" aria-hidden />
+      <Codicon
+        name={inlineInput?.action === 'newFolder' ? 'new-folder' : 'new-file'}
+        className="file-node__kind-icon file-node__kind-icon--input"
+      />
       <input
         ref={inputRef as RefObject<HTMLInputElement>}
         className="file-node__inline-input"
@@ -56,9 +67,24 @@ export function FileTree({
       <div key={node.path}>
         {isRenaming ? (
           <div className="file-node file-node--input" style={{ paddingLeft: depth * 16 + 8 }}>
-            <span className="file-node__icon">
-              {node.isDirectory ? (node.expanded ? '\u25BE' : '\u25B8') : ' '}
-            </span>
+            {node.isDirectory ? (
+              <Codicon
+                name={node.expanded ? 'chevron-down' : 'chevron-right'}
+                className="file-node__twisty"
+              />
+            ) : (
+              <span className="file-node__twisty file-node__twisty--blank" aria-hidden />
+            )}
+            <Codicon
+              name={
+                node.isDirectory
+                  ? node.expanded
+                    ? 'folder-opened'
+                    : 'folder'
+                  : fileIconForFileName(node.name)
+              }
+              className={`file-node__kind-icon ${node.isDirectory ? 'file-node__kind-icon--dir' : ''}`}
+            />
             <input
               ref={inputRef as RefObject<HTMLInputElement>}
               className="file-node__inline-input"
@@ -87,9 +113,24 @@ export function FileTree({
               handleContextMenu(e, node, parentDir)
             }}
           >
-            <span className="file-node__icon">
-              {node.isDirectory ? (node.expanded ? '\u25BE' : '\u25B8') : ' '}
-            </span>
+            {node.isDirectory ? (
+              <Codicon
+                name={node.expanded ? 'chevron-down' : 'chevron-right'}
+                className="file-node__twisty"
+              />
+            ) : (
+              <span className="file-node__twisty file-node__twisty--blank" aria-hidden />
+            )}
+            <Codicon
+              name={
+                node.isDirectory
+                  ? node.expanded
+                    ? 'folder-opened'
+                    : 'folder'
+                  : fileIconForFileName(node.name)
+              }
+              className={`file-node__kind-icon ${node.isDirectory ? 'file-node__kind-icon--dir' : ''}`}
+            />
             <span className="file-node__name">{node.name}</span>
           </div>
         )}
@@ -108,12 +149,12 @@ export function FileTree({
 
   return (
     <div className="file-explorer-panel__tree">
-      {inlineInput &&
-        (inlineInput.action === 'newFile' || inlineInput.action === 'newFolder') &&
-        inlineInput.parentPath === workspaceRootPath &&
-        renderInlineInput(0)}
-      {tree.length === 0 && !inlineInput ? (
-        <div className="file-explorer-panel__empty">Empty directory</div>
+      {rootInlineNew && renderInlineInput(0)}
+      {tree.length === 0 && !rootInlineNew ? (
+        <div className="file-explorer-panel__empty">
+          <p className="file-explorer-panel__empty-title">Nothing here yet</p>
+          <p className="file-explorer-panel__empty-hint">Right-click to add files or folders</p>
+        </div>
       ) : (
         tree.map((node, i) => renderNode(node, [i], 0))
       )}
