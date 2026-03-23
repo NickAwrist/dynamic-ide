@@ -460,6 +460,14 @@
   color: var(--text-muted);
 }
 
+.open-url-modal__hint {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--text-muted);
+  opacity: 0.9;
+  margin-top: -2px;
+}
+
 .open-url-modal__select {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);

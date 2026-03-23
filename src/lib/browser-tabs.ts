@@ -39,3 +39,27 @@ export function tabLabel(tab: BrowserTab): string {
     return tab.url.slice(0, 32) || 'New tab'
   }
 }
+
+/** Short summary for open-URL modal: what this embedded browser is showing. */
+export function browserPanelPickerSummary(panel: {
+  componentState: Record<string, unknown>
+}): string {
+  const { tabs, activeTabId } = defaultBrowserTabs(panel.componentState)
+  const active = tabs.find((t) => t.id === activeTabId) ?? tabs[0]
+  const site = tabLabel(active)
+  const short = site.length > 44 ? `${site.slice(0, 42)}…` : site
+  if (tabs.length <= 1) return short
+  return `${short} (${tabs.length} tabs)`
+}
+
+export function disambiguatePickerSummaries(summaries: string[]): string[] {
+  const count = new Map<string, number>()
+  for (const s of summaries) count.set(s, (count.get(s) ?? 0) + 1)
+  const seen = new Map<string, number>()
+  return summaries.map((s) => {
+    if ((count.get(s) ?? 0) <= 1) return s
+    const n = (seen.get(s) ?? 0) + 1
+    seen.set(s, n)
+    return `${s} — panel ${n}`
+  })
+}

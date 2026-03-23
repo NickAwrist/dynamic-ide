@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useIDEStore } from '../stores/workspace.store'
 import { useOpenUrlStore } from '../stores/open-url.store'
-import { defaultBrowserTabs, newBrowserTabId, tabLabel } from '../lib/browser-tabs'
+import {
+  browserPanelPickerSummary,
+  defaultBrowserTabs,
+  disambiguatePickerSummaries,
+  newBrowserTabId,
+  tabLabel,
+} from '../lib/browser-tabs'
 import { IconClose } from './ui/ChromeIcons'
 
 export function OpenUrlModal() {
@@ -19,6 +25,11 @@ export function OpenUrlModal() {
     () => activeWs?.panels.filter((p) => p.type === 'browser') ?? [],
     [activeWs?.panels],
   )
+
+  const browserPanelOptionLabels = useMemo(() => {
+    const summaries = browserPanels.map((p) => browserPanelPickerSummary(p))
+    return disambiguatePickerSummaries(summaries)
+  }, [browserPanels])
 
   const [panelId, setPanelId] = useState<string>('')
   const [tabTarget, setTabTarget] = useState<'new' | string>('new')
@@ -88,7 +99,8 @@ export function OpenUrlModal() {
 
           {browserPanels.length > 1 && (
             <label className="open-url-modal__field">
-              <span>Browser panel</span>
+              <span>Which embedded browser?</span>
+              <span className="open-url-modal__hint">Each line is that panel’s current page.</span>
               <select
                 className="open-url-modal__select"
                 value={panelId || browserPanels[0]?.id}
@@ -99,7 +111,7 @@ export function OpenUrlModal() {
               >
                 {browserPanels.map((p, i) => (
                   <option key={p.id} value={p.id}>
-                    Browser {i + 1}
+                    {browserPanelOptionLabels[i] ?? browserPanelPickerSummary(p)}
                   </option>
                 ))}
               </select>
