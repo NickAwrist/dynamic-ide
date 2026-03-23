@@ -12,19 +12,10 @@
     "rebuild:native": "electron-rebuild -f -w node-pty",
     "dist": "npm run build && npm run rebuild:native && electron-builder",
     "dist:win": "npm run build && npm run rebuild:native && electron-builder --win",
-    "dist:mac": "npm run build && npm run rebuild:native && electron-builder --mac"
+    "dist:mac": "env COPYFILE_DISABLE=1 npm run build && npm run rebuild:native && electron-builder --mac"
   },
   "build": {
-    "appId": "com.orbis.ide",
-    "productName": "Orbis",
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    },
-    "icon": "public/orbis-icon.png",
-    "asarUnpack": [
-      "**/node_modules/node-pty/**/*"
-    ]
+    "extends": "./electron-builder.config.js"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
