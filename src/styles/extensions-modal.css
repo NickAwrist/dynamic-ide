@@ -165,10 +165,10 @@
   transition:
     background var(--motion-duration-sm) var(--motion-ease-standard),
     color var(--motion-duration-sm) var(--motion-ease-standard),
-    transform var(--motion-duration-fast) var(--motion-ease-out);
+    opacity var(--motion-duration-fast) var(--motion-ease-out);
 }
 .ext-modal__close-btn:active {
-  transform: scale(0.94);
+  opacity: 0.88;
 }
 .ext-modal__close-btn:hover {
   background: var(--danger-tint-08);

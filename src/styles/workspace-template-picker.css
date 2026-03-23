@@ -75,6 +75,15 @@
   margin-top: 20px;
 }
 
+/* Near bottom of viewport: open upward so the menu stays on screen */
+.canvas__placeholder__add-menu .add-menu__dropdown {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+  transform-origin: bottom right;
+}
+
 /* ----- Mini layout previews (wireframe) ----- */
 .workspace-template-mini-preview {
   width: 100%;

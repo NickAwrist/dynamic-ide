@@ -3,6 +3,7 @@ import Editor, { type Monaco } from '@monaco-editor/react'
 import { PanelState, WorkspaceState, useIDEStore } from '../stores/workspace.store'
 import { applyFullTheme, getSavedThemeInfo, getCurrentThemeId, registerMonaco } from '../utils/theme-engine'
 import { createUiLogger, Scopes } from '../lib/logger'
+import { IconClose } from '../components/ui/ChromeIcons'
 
 const log = createUiLogger(Scopes.uiPanelEditor)
 
@@ -171,13 +172,16 @@ export function EditorPanel({ panel, workspace }: Props) {
                 {tab.name}
               </span>
               <button
+                type="button"
                 className="editor-panel__tab-close"
+                title="Close tab"
+                aria-label="Close tab"
                 onClick={(e) => {
                   e.stopPropagation()
                   closeTab(idx)
                 }}
               >
-                ×
+                <IconClose size="xs" />
               </button>
             </div>
           ))}

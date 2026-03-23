@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import { useIDEStore } from '../stores/workspace.store'
 import { AddComponentMenu } from './AddComponentMenu'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
+import { IconChromeMaximize, IconChromeMinimize, IconChromeRestore, IconClose } from './ui/ChromeIcons'
 
 interface Props {
   showAddComponentMenu: boolean
@@ -8,6 +10,14 @@ interface Props {
 
 export function TitleBar({ showAddComponentMenu }: Props) {
   const setExtensionsOpen = useIDEStore((s) => s.setExtensionsOpen)
+  const [maximized, setMaximized] = useState(false)
+
+  useEffect(() => {
+    const w = window.electronAPI?.window
+    if (!w?.isMaximized || !w?.onMaximizedChange) return
+    void w.isMaximized().then(setMaximized)
+    return w.onMaximizedChange(setMaximized)
+  }, [])
 
   return (
     <div className="titlebar">
@@ -39,14 +49,36 @@ export function TitleBar({ showAddComponentMenu }: Props) {
           </>
         )}
         <div className="titlebar__controls">
-          <button type="button" className="titlebar__btn" onClick={() => window.electronAPI.window.minimize()}>
-            ─
+          <button
+            type="button"
+            className="titlebar__btn"
+            title="Minimize"
+            aria-label="Minimize"
+            onClick={() => window.electronAPI.window.minimize()}
+          >
+            <IconChromeMinimize width={15} height={15} />
           </button>
-          <button type="button" className="titlebar__btn" onClick={() => window.electronAPI.window.maximize()}>
-            □
+          <button
+            type="button"
+            className="titlebar__btn"
+            title={maximized ? 'Restore' : 'Maximize'}
+            aria-label={maximized ? 'Restore' : 'Maximize'}
+            onClick={() => window.electronAPI.window.maximize()}
+          >
+            {maximized ? (
+              <IconChromeRestore width={15} height={15} />
+            ) : (
+              <IconChromeMaximize width={15} height={15} />
+            )}
           </button>
-          <button type="button" className="titlebar__btn titlebar__btn--close" onClick={() => window.electronAPI.window.close()}>
-            ×
+          <button
+            type="button"
+            className="titlebar__btn titlebar__btn--close"
+            title="Close"
+            aria-label="Close"
+            onClick={() => window.electronAPI.window.close()}
+          >
+            <IconClose size="md" width={15} height={15} />
           </button>
         </div>
       </div>

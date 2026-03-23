@@ -65,17 +65,21 @@
 }
 
 .workspace-switcher__tab-close {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  min-height: 16px;
   opacity: 0;
+  color: inherit;
   transition:
     opacity var(--motion-duration-sm) var(--motion-ease-standard),
-    background var(--motion-duration-sm) var(--motion-ease-standard),
-    transform var(--motion-duration-fast) var(--motion-ease-out);
+    background var(--motion-duration-sm) var(--motion-ease-standard);
   padding: 0 2px;
   border-radius: 3px;
 }
 .workspace-switcher__tab-close:active {
-  transform: scale(0.9);
+  opacity: 1;
 }
 .workspace-switcher__tab:hover .workspace-switcher__tab-close {
   opacity: 0.6;

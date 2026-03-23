@@ -1,4 +1,5 @@
 import type { BrowserProfile } from '../../types/electron'
+import { IconClose } from '../../components/ui/ChromeIcons'
 
 interface Props {
   profiles: BrowserProfile[]
@@ -20,8 +21,8 @@ export function BrowserImportModal({
       <div className="browser-panel__modal" onClick={(e) => e.stopPropagation()}>
         <div className="browser-panel__modal-header">
           <span>Import Browser Data</span>
-          <button type="button" className="browser-panel__modal-close" onClick={onClose}>
-            ×
+          <button type="button" className="browser-panel__modal-close" onClick={onClose} aria-label="Close">
+            <IconClose size="md" />
           </button>
         </div>
         <div className="browser-panel__modal-body">

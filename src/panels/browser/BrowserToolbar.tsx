@@ -1,4 +1,5 @@
 import type { KeyboardEvent, RefObject } from 'react'
+import { IconClose } from '../../components/ui/ChromeIcons'
 
 interface Props {
   displayUrl: string
@@ -45,8 +46,14 @@ export function BrowserToolbar({
       >
         ▶
       </button>
-      <button type="button" className="browser-panel__nav-btn" onClick={onReload} title="Reload">
-        {isLoading ? '✕' : '↻'}
+      <button
+        type="button"
+        className="browser-panel__nav-btn"
+        onClick={onReload}
+        title={isLoading ? 'Stop' : 'Reload'}
+        aria-label={isLoading ? 'Stop loading' : 'Reload'}
+      >
+        {isLoading ? <IconClose size="sm" /> : '↻'}
       </button>
 
       <div className="browser-panel__url-bar">

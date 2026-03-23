@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { useIDEStore, type WorkspaceState } from '../stores/workspace.store'
 import { WorkspaceManagerModal } from './WorkspaceManagerModal'
+import { IconClose } from './ui/ChromeIcons'
 
 type TabRow =
   | { kind: 'live'; ws: WorkspaceState }
@@ -133,8 +134,9 @@ export function WorkspaceSwitcher() {
                     void closeWorkspace(ws.id)
                   }}
                   title="Close workspace (keeps saved state)"
+                  aria-label="Close workspace"
                 >
-                  ×
+                  <IconClose size="xs" />
                 </button>
               )}
             </div>

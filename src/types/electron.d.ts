@@ -86,6 +86,8 @@ export interface ElectronAPI {
     minimize: () => void
     maximize: () => void
     close: () => void
+    isMaximized: () => Promise<boolean>
+    onMaximizedChange: (cb: (v: boolean) => void) => () => void
     syncChromeBackground: (hex: string) => Promise<void>
   }
   pty: {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { IconClose } from '../ui/ChromeIcons'
 import { useIDEStore } from '../../stores/workspace.store'
 import { CreateWorkspaceSection } from './CreateWorkspaceSection'
 import { WorkspaceActionMenuPortal } from './WorkspaceActionMenuPortal'
@@ -159,7 +160,7 @@ export function WorkspaceManagerModal({ open, onClose }: Props) {
         <div className="workspace-modal__header">
           <h2 className="workspace-modal__title">Workspaces</h2>
           <button type="button" className="workspace-modal__close" onClick={onClose} aria-label="Close">
-            ×
+            <IconClose size="lg" />
           </button>
         </div>
         <div className="workspace-modal__body">

@@ -156,6 +156,14 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 
+  const broadcastMaximized = () => {
+    if (!mainWindow) return
+    mainWindow.webContents.send('window:maximize-changed', mainWindow.isMaximized())
+  }
+  mainWindow.on('maximize', broadcastMaximized)
+  mainWindow.on('unmaximize', broadcastMaximized)
+  mainWindow.webContents.on('did-finish-load', broadcastMaximized)
+
   mainWindow.on('close', () => {
     if (mainWindow) writePersistedWindowState(mainWindow)
   })
@@ -272,6 +280,7 @@ function registerIpcHandlers() {
   })
 
   // Window controls
+  ipcMain.handle('window:isMaximized', () => Boolean(mainWindow?.isMaximized()))
   ipcMain.on('window:minimize', () => mainWindow?.minimize())
   ipcMain.on('window:maximize', () => {
     if (mainWindow?.isMaximized()) mainWindow.unmaximize()

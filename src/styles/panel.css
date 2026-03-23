@@ -52,20 +52,18 @@
   align-items: center;
   justify-content: center;
   border-radius: 2px;
-  font-size: 12px;
-  line-height: 1;
   color: var(--text-muted);
   transition:
     background var(--motion-duration-sm) var(--motion-ease-standard),
     color var(--motion-duration-sm) var(--motion-ease-standard),
-    transform var(--motion-duration-fast) var(--motion-ease-out);
+    opacity var(--motion-duration-fast) var(--motion-ease-out);
 }
 .panel__close:hover {
   background: var(--danger);
   color: var(--button-fg, #fff);
 }
 .panel__close:active {
-  transform: scale(0.9);
+  opacity: 0.88;
 }
 
 .panel__content {

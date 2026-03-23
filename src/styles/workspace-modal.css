@@ -29,22 +29,25 @@
 }
 
 .workspace-modal__close {
-  font-size: 22px;
-  line-height: 1;
-  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border-radius: 4px;
   color: var(--text-muted);
   transition:
     background var(--motion-duration-sm) var(--motion-ease-standard),
     color var(--motion-duration-sm) var(--motion-ease-standard),
-    transform var(--motion-duration-fast) var(--motion-ease-out);
+    opacity var(--motion-duration-fast) var(--motion-ease-out);
 }
 .workspace-modal__close:hover {
   background: var(--bg-surface-hover);
   color: var(--text-primary);
 }
 .workspace-modal__close:active {
-  transform: scale(0.92);
+  opacity: 0.85;
 }
 
 .workspace-modal__body {

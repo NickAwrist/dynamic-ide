@@ -102,8 +102,6 @@
   border: none;
   background: transparent;
   color: var(--text-muted, #888);
-  font-size: 18px;
-  line-height: 1;
 }
 .app-log-modal__btn--close:hover {
   background: var(--bg-surface-hover);

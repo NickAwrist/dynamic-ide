@@ -6,6 +6,12 @@ const api = {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized') as Promise<boolean>,
+    onMaximizedChange: (cb: (v: boolean) => void) => {
+      const h = (_e: unknown, v: boolean) => cb(v)
+      ipcRenderer.on('window:maximize-changed', h)
+      return () => ipcRenderer.removeListener('window:maximize-changed', h)
+    },
     syncChromeBackground: (hex: string) =>
       ipcRenderer.invoke('window:syncChromeBackground', hex) as Promise<void>,
   },

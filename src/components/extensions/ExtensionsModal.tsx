@@ -233,7 +233,7 @@ export function ExtensionsModal() {
           <div className="ext-modal__main-header">
             <h2 className="ext-modal__pane-title">{mainHeaderTitle}</h2>
             <button type="button" className="ext-modal__close-btn" onClick={() => setExtensionsOpen(false)}>
-              <IconClose />
+              <IconClose size="xl" />
             </button>
           </div>
 

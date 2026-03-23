@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppLogEntry, AppLogLevel } from '../types/electron'
+import { IconClose } from './ui/ChromeIcons'
 
 interface Props {
   open: boolean
@@ -122,7 +123,7 @@ export function LogViewerModal({ open, onClose }: Props) {
               onClick={onClose}
               aria-label="Close"
             >
-              ×
+              <IconClose size="lg" />
             </button>
           </div>
         </div>

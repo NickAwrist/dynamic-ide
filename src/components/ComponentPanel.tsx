@@ -9,6 +9,7 @@ import { BrowserPanel } from '../panels/BrowserPanel'
 import { ExtensionPanel } from '../panels/ExtensionPanel'
 import { T3CodePanel } from '../panels/T3CodePanel'
 import { snapPosition, snapResize, SnapGuide, Rect } from '../utils/snap'
+import { IconClose } from './ui/ChromeIcons'
 
 const PANEL_TITLES: Record<string, string> = {
   editor: 'Code Editor',
@@ -115,8 +116,9 @@ export function ComponentPanel({
             removePanel(panel.id)
           }}
           title="Close panel"
+          aria-label="Close panel"
         >
-          ×
+          <IconClose size="sm" />
         </button>
       </div>
       <div className="panel__content">{renderContent()}</div>

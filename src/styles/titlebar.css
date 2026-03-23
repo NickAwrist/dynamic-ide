@@ -1,13 +1,13 @@
 /* ===== TITLEBAR ===== */
 .titlebar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   height: 38px;
   background: var(--bg-toolbar);
   border-bottom: 1px solid var(--border-color);
   -webkit-app-region: drag;
   user-select: none;
-  padding: 0 8px;
+  padding: 0 0 0 8px;
   gap: 8px;
   flex-shrink: 0;
 }
@@ -16,6 +16,7 @@
   display: flex;
   align-items: center;
   min-width: 120px;
+  -webkit-app-region: drag;
 }
 
 .titlebar__brand {
@@ -28,8 +29,10 @@
 .titlebar__center {
   flex: 1;
   display: flex;
+  align-items: center;
   justify-content: center;
   overflow: hidden;
+  -webkit-app-region: drag;
 }
 
 .titlebar__right {
@@ -37,34 +40,39 @@
   align-items: center;
   gap: 4px;
   -webkit-app-region: no-drag;
+  padding-right: 0;
 }
 
 .titlebar__controls {
   display: flex;
+  align-items: stretch;
+  align-self: stretch;
   margin-left: 8px;
 }
 
 .titlebar__btn {
-  width: 32px;
-  height: 28px;
+  width: 40px;
+  flex: 0 0 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: 0;
+  color: color-mix(in srgb, var(--text-primary, #ccc) 72%, transparent);
   transition:
     background var(--motion-duration-sm) var(--motion-ease-standard),
     color var(--motion-duration-sm) var(--motion-ease-standard),
-    transform var(--motion-duration-fast) var(--motion-ease-out);
+    opacity var(--motion-duration-fast) var(--motion-ease-out);
 }
 .titlebar__btn:hover {
-  background: var(--bg-surface-hover);
+  background: color-mix(in srgb, var(--text-primary, #ccc) 8%, transparent);
+  color: var(--text-primary, #e6e6e6);
 }
 .titlebar__btn:active {
-  transform: scale(0.94);
+  opacity: 0.92;
 }
 .titlebar__btn--close:hover {
   background: var(--danger);
   color: var(--button-fg, #fff);
+  opacity: 1;
 }
 
