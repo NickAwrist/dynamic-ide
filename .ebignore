@@ -1,0 +1,5 @@
+# Used by electron-builder instead of .gitignore when present.
+# Do NOT list dist/ or dist-electron/ here — they must be packed (see .gitignore for git).
+.git/
+*.log
+.DS_Store
