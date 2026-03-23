@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { PanelState, WorkspaceState, useIDEStore } from '../stores/workspace.store'
 import { createUiLogger, Scopes } from '../lib/logger'
+import { attachT3GuestOpenUrlHandler } from '../lib/request-open-url'
 
 const log = createUiLogger(Scopes.uiPanelT3)
 
@@ -178,6 +179,8 @@ export function T3CodePanel({ panel, workspace }: Props) {
 
     wv.addEventListener('did-fail-load', onFailLoad as any)
     wv.addEventListener('did-finish-load', onFinishLoad)
+
+    attachT3GuestOpenUrlHandler(wv)
 
     containerRef.current.appendChild(wv)
     webviewRef.current = wv

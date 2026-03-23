@@ -5,6 +5,8 @@ import { TitleBar } from './components/TitleBar'
 import { StatusBar } from './components/StatusBar'
 import { ExtensionsModal } from './components/ExtensionsModal'
 import { LogViewerModal } from './components/LogViewerModal'
+import { OpenUrlModal } from './components/OpenUrlModal'
+import { installGlobalLinkCapture } from './lib/request-open-url'
 import { initializeDefaultTheme } from './utils/theme-engine'
 import { handleGlobalKeydown } from './lib/global-hotkeys'
 
@@ -20,6 +22,8 @@ export default function App() {
   useEffect(() => {
     loadFromDisk()
   }, [loadFromDisk])
+
+  useEffect(() => installGlobalLinkCapture(), [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => handleGlobalKeydown(e)
@@ -80,6 +84,7 @@ export default function App() {
       <StatusBar />
       {isExtensionsOpen && <ExtensionsModal />}
       <LogViewerModal open={logViewerOpen} onClose={() => setLogViewerOpen(false)} />
+      <OpenUrlModal />
     </div>
   )
 }

@@ -1,4 +1,55 @@
 /* ===== TERMINAL PANEL ===== */
+.terminal-panel-stack {
+  background: var(--bg-primary);
+}
+
+.terminal-panel__url-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.terminal-panel__url-hint-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.terminal-panel__url-hint-btn {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--bg-toolbar);
+}
+.terminal-panel__url-hint-btn:hover {
+  background: var(--accent-hover);
+}
+
+.terminal-panel__url-hint-dismiss {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  font-size: 14px;
+  color: var(--text-muted);
+  border-radius: 4px;
+}
+.terminal-panel__url-hint-dismiss:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
 .terminal-panel {
   background: var(--bg-primary);
   overflow: hidden;

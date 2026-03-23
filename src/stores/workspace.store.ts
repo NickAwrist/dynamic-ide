@@ -41,7 +41,7 @@ interface IDEStore {
   setWorkspaceManagerOpen: (val: boolean) => void
 
   // Panel CRUD
-  addPanel: (type: PanelType, componentState?: Record<string, any>) => void
+  addPanel: (type: PanelType, componentState?: Record<string, any>) => string | null
   applyWorkspaceTemplate: (
     templateId: WorkspaceTemplateId,
     layoutSize: { width: number; height: number },
@@ -216,14 +216,15 @@ export const useIDEStore = create<IDEStore>()((set, get) => ({
 
   addPanel: (type, componentState) => {
     const ws = get().getActiveWorkspace()
-    if (!ws) return
+    if (!ws) return null
 
     const defaults = PANEL_DEFAULTS[type]
     const offset = ws.panels.length * 30
     const newZ = get().maxZIndex + 1
+    const panelId = get()._nextId()
 
     const panel: PanelState = {
-      id: get()._nextId(),
+      id: panelId,
       type,
       x: 80 + offset,
       y: 80 + offset,
@@ -240,6 +241,7 @@ export const useIDEStore = create<IDEStore>()((set, get) => ({
       ),
     }))
     debouncedSave(get())
+    return panelId
   },
 
   applyWorkspaceTemplate: (templateId, layoutSize) => {

@@ -1,13 +1,50 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebglAddon } from '@xterm/addon-webgl'
+import { WebLinksAddon } from '@xterm/addon-web-links'
 import type { IDisposable } from '@xterm/xterm'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { PanelState, WorkspaceState } from '../stores/workspace.store'
 import { createUiLogger, Scopes } from '../lib/logger'
+import { requestOpenUrl } from '../lib/request-open-url'
 
 const log = createUiLogger(Scopes.uiPanelTerminal)
+
+const LOCAL_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/[^\s"'<>]*)?/gi
+
+const HINT_SCAN_BUFFER_MAX = 12000
+
+/** Strip SGR ANSI so URLs split from styling still match as one string. */
+function stripSgrAnsi(s: string): string {
+  return s.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '')
+}
+
+/** Vite / modern terminals embed link targets in OSC 8 hyperlinks. */
+function localUrlsFromOsc8(raw: string): string[] {
+  const out: string[] = []
+  const re = /\x1b\]8;;([^\x07\x1b]+?)(?:\x1b\\|\x07)/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(raw)) !== null) {
+    const u = m[1].trim()
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(u)) out.push(u.split(/[\s"'<>]/)[0] || u)
+  }
+  return out
+}
+
+function collectLocalUrlCandidates(rawChunk: string, rollingPlain: string): string[] {
+  const osc = localUrlsFromOsc8(rawChunk)
+  const fromText = rollingPlain.match(LOCAL_URL_RE) || []
+  return [...osc, ...fromText]
+}
+
+/** Prefer URLs that include an explicit port; otherwise last candidate wins. */
+function pickBestLocalUrl(candidates: string[]): string | null {
+  if (!candidates.length) return null
+  const withPort = candidates.filter((u) => /:\/\/(localhost|127\.0\.0\.1):\d+/i.test(u))
+  const pool = withPort.length ? withPort : candidates
+  return pool[pool.length - 1] ?? null
+}
 
 interface Props {
   panel: PanelState
@@ -17,6 +54,7 @@ interface Props {
 interface TerminalInstance {
   terminal: Terminal
   fitAddon: FitAddon
+  webLinksAddon: WebLinksAddon
   ptyId: string | null
   hostEl: HTMLDivElement
   initialized: boolean
@@ -102,15 +140,29 @@ function getOrCreateInstance(key: string): TerminalInstance {
   const fitAddon = new FitAddon()
   terminal.loadAddon(fitAddon)
 
+  const webLinksAddon = new WebLinksAddon((e, uri) => {
+    e.preventDefault()
+    requestOpenUrl(uri)
+  })
+  terminal.loadAddon(webLinksAddon)
+
   const hostEl = document.createElement('div')
   hostEl.style.width = '100%'
   hostEl.style.height = '100%'
   hostEl.style.overflow = 'hidden'
 
   inst = {
-    terminal, fitAddon, ptyId: null, hostEl,
-    initialized: false, cleanupPtyListener: null, fitDebounce: null,
-    fitRaf: null, ptyDataDisposable: null, ptyResizeDisposable: null,
+    terminal,
+    fitAddon,
+    webLinksAddon,
+    ptyId: null,
+    hostEl,
+    initialized: false,
+    cleanupPtyListener: null,
+    fitDebounce: null,
+    fitRaf: null,
+    ptyDataDisposable: null,
+    ptyResizeDisposable: null,
   }
   terminalInstances.set(key, inst)
   return inst
@@ -118,7 +170,23 @@ function getOrCreateInstance(key: string): TerminalInstance {
 
 export function TerminalPanel({ panel, workspace }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const hintDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hintScanBufferRef = useRef('')
+  const previousDetectedUrlRef = useRef<string | null>(null)
+  const [localUrlHint, setLocalUrlHint] = useState<string | null>(null)
+  const [hintDismissed, setHintDismissed] = useState(false)
   const instanceKey = `${workspace.id}:${panel.id}`
+
+  useEffect(() => {
+    setHintDismissed(false)
+    setLocalUrlHint(null)
+    hintScanBufferRef.current = ''
+    previousDetectedUrlRef.current = null
+    if (hintDebounceRef.current) {
+      clearTimeout(hintDebounceRef.current)
+      hintDebounceRef.current = null
+    }
+  }, [instanceKey])
 
   useEffect(() => {
     const container = containerRef.current
@@ -154,6 +222,11 @@ export function TerminalPanel({ panel, workspace }: Props) {
       }
       if (inst.hostEl.parentElement === container) {
         container.removeChild(inst.hostEl)
+      }
+      try {
+        inst.webLinksAddon.dispose()
+      } catch {
+        /* ignore */
       }
       try {
         inst.terminal.dispose()
@@ -195,12 +268,28 @@ export function TerminalPanel({ panel, workspace }: Props) {
 
         if (cancelled) return
         inst.ptyId = ptyId
+        hintScanBufferRef.current = ''
 
         let isReady = false
         inst.cleanupPtyListener = window.electronAPI.pty.onData((id, data) => {
           if (id === ptyId) {
             inst.terminal.write(data)
-            
+
+            const plain = stripSgrAnsi(data).replace(/\r/g, '')
+            hintScanBufferRef.current = (hintScanBufferRef.current + plain).slice(-HINT_SCAN_BUFFER_MAX)
+            const candidates = collectLocalUrlCandidates(data, hintScanBufferRef.current)
+            const u = pickBestLocalUrl(candidates)
+            if (u) {
+              if (hintDebounceRef.current) clearTimeout(hintDebounceRef.current)
+              hintDebounceRef.current = setTimeout(() => {
+                if (previousDetectedUrlRef.current !== u) {
+                  previousDetectedUrlRef.current = u
+                  setHintDismissed(false)
+                }
+                setLocalUrlHint(u)
+              }, 450)
+            }
+
             // Execute the initial command shortly after the terminal emits its first bytes (shell init)
             if (!isReady && panel.componentState?.command) {
               isReady = true;
@@ -228,6 +317,10 @@ export function TerminalPanel({ panel, workspace }: Props) {
     connectPty()
     return () => {
       cancelled = true
+      if (hintDebounceRef.current) {
+        clearTimeout(hintDebounceRef.current)
+        hintDebounceRef.current = null
+      }
       const inst = terminalInstances.get(instanceKey)
       if (!inst) return
       inst.ptyDataDisposable?.dispose()
@@ -276,11 +369,34 @@ export function TerminalPanel({ panel, workspace }: Props) {
   }, [instanceKey])
 
   return (
-    <div
-      ref={containerRef}
-      className="terminal-panel"
-      style={{ width: '100%', height: '100%' }}
-    />
+    <div className="terminal-panel-stack" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {localUrlHint && !hintDismissed && (
+        <div className="terminal-panel__url-hint">
+          <span className="terminal-panel__url-hint-text" title={localUrlHint}>
+            Local: {localUrlHint.length > 56 ? `${localUrlHint.slice(0, 54)}…` : localUrlHint}
+          </span>
+          <button type="button" className="terminal-panel__url-hint-btn" onClick={() => requestOpenUrl(localUrlHint)}>
+            Open link…
+          </button>
+          <button
+            type="button"
+            className="terminal-panel__url-hint-dismiss"
+            onClick={() => {
+              previousDetectedUrlRef.current = null
+              setHintDismissed(true)
+            }}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        className="terminal-panel"
+        style={{ width: '100%', height: '100%', flex: 1, minHeight: 0 }}
+      />
+    </div>
   )
 }
 

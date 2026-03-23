@@ -3,10 +3,19 @@ import { PanelState, WorkspaceState, useIDEStore } from '../../stores/workspace.
 import type { BookmarkNode, BrowserProfile } from '../../types/electron'
 import { createUiLogger, Scopes } from '../../lib/logger'
 import { BookmarkTree } from './BookmarkTree'
-
-const log = createUiLogger(Scopes.uiPanelBrowser)
 import { BrowserImportModal } from './BrowserImportModal'
 import { BrowserToolbar } from './BrowserToolbar'
+import { BrowserTabBar } from './BrowserTabBar'
+import {
+  defaultBrowserTabs,
+  MAX_BROWSER_TABS,
+  newBrowserTabId,
+  type BrowserTab,
+} from '../../lib/browser-tabs'
+import { addInPanelBrowserTab } from '../../lib/browser-panel-actions'
+import { useOpenUrlStore } from '../../stores/open-url.store'
+
+const log = createUiLogger(Scopes.uiPanelBrowser)
 
 interface Props {
   panel: PanelState
@@ -14,25 +23,53 @@ interface Props {
 }
 
 type ElectronWebview = {
-    loadURL: (u: string) => void
-    getURL: () => string
-    canGoBack: () => boolean
-    canGoForward: () => boolean
-    goBack: () => void
-    goForward: () => void
-    reload: () => void
-    stop: () => void
-    addEventListener: (ev: string, fn: (...args: unknown[]) => void) => void
-    removeEventListener: (ev: string, fn: (...args: unknown[]) => void) => void
-    setAttribute: (n: string, v: string) => void
+  loadURL: (u: string) => void
+  getURL: () => string
+  canGoBack: () => boolean
+  canGoForward: () => boolean
+  goBack: () => void
+  goForward: () => void
+  reload: () => void
+  stop: () => void
+  addEventListener: (ev: string, fn: (...args: unknown[]) => void) => void
+  removeEventListener: (ev: string, fn: (...args: unknown[]) => void) => void
+  setAttribute: (n: string, v: string) => void
   style: CSSStyleDeclaration
+  parentElement: HTMLElement | null
+  getWebContents?: () => { setWindowOpenHandler?: (cb: (d: { url: string }) => { action: 'deny' | 'allow' }) => void }
+}
+
+function attachBrowserWindowOpenHandler(wv: ElectronWebview, panelId: string) {
+  const apply = () => {
+    try {
+      const wc = wv.getWebContents?.()
+      const fn = wc && typeof wc === 'object' && 'setWindowOpenHandler' in wc ? (wc as any).setWindowOpenHandler : null
+      if (typeof fn !== 'function') return false
+      fn.call(wc, (details: { url: string }) => {
+        const u = details?.url
+        if (u && /^https?:\/\//i.test(u)) {
+          addInPanelBrowserTab(panelId, u)
+        }
+        return { action: 'deny' as const }
+      })
+      return true
+    } catch {
+      return false
+    }
+  }
+  if (apply()) return
+  ;(wv as unknown as { addEventListener: typeof wv.addEventListener }).addEventListener('dom-ready', function onReady() {
+    wv.removeEventListener('dom-ready', onReady as any)
+    apply()
+  })
 }
 
 export function BrowserPanel({ panel, workspace: _workspace }: Props) {
   const updatePanel = useIDEStore((s) => s.updatePanel)
 
   const containerRef = useRef<HTMLDivElement>(null)
-  const webviewRef = useRef<ElectronWebview | null>(null)
+  const tabWebviewsRef = useRef<Map<string, ElectronWebview>>(new Map())
+  const activeTabIdRef = useRef<string>('')
   const urlInputRef = useRef<HTMLInputElement>(null)
 
   const componentStateRef = useRef(panel.componentState)
@@ -40,10 +77,13 @@ export function BrowserPanel({ panel, workspace: _workspace }: Props) {
     componentStateRef.current = panel.componentState
   }, [panel.componentState])
 
-  const savedUrl = panel.componentState?.url || 'https://www.google.com'
-  console.log('[DEBUG] BrowserPanel resolving savedUrl for panel', panel.id, '->', savedUrl)
+  const { tabs, activeTabId } = defaultBrowserTabs(panel.componentState)
+  activeTabIdRef.current = activeTabId
 
-  const [displayUrl, setDisplayUrl] = useState(savedUrl)
+  const [displayUrl, setDisplayUrl] = useState(() => {
+    const t = tabs.find((x) => x.id === activeTabId)
+    return t?.url || 'https://www.google.com'
+  })
   const [canGoBack, setCanGoBack] = useState(false)
   const [canGoForward, setCanGoForward] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -52,68 +92,190 @@ export function BrowserPanel({ panel, workspace: _workspace }: Props) {
   const [showImportModal, setShowImportModal] = useState(false)
   const [profiles, setProfiles] = useState<BrowserProfile[]>([])
   const [importStatus, setImportStatus] = useState('')
+  const [migratedLegacy, setMigratedLegacy] = useState(false)
+
+  const pendingForThisPanel = useOpenUrlStore(
+    (s) => (s.pendingBrowserNav?.panelId === panel.id ? s.pendingBrowserNav : null),
+  )
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container || webviewRef.current) return
+    const cs = panel.componentState
+    if (Array.isArray(cs.tabs) && cs.tabs.length > 0) {
+      setMigratedLegacy(true)
+      return
+    }
+    const { tabs: nextTabs, activeTabId: nextActive } = defaultBrowserTabs(cs)
+    updatePanel(panel.id, {
+      componentState: { ...cs, tabs: nextTabs, activeTabId: nextActive },
+    })
+    setMigratedLegacy(true)
+  }, [panel.id])
 
-    log.debug(
-      'webview_mount',
-      `${panel.id} partition=persist:browser src=${savedUrl}`,
-    )
+  useEffect(() => {
+    if (!pendingForThisPanel) return
+    const nav = useOpenUrlStore.getState().consumePendingBrowserNavForPanel(panel.id)
+    if (!nav) return
 
-    const wv = document.createElement('webview') as unknown as ElectronWebview
-    wv.setAttribute('partition', 'persist:browser')
-    wv.setAttribute('src', savedUrl)
-    wv.setAttribute('allowpopups', '')
-    wv.style.width = '100%'
-    wv.style.height = '100%'
-    wv.style.border = 'none'
-    wv.style.display = 'flex'
-    wv.style.flex = '1'
+    const cs = componentStateRef.current
+    const { tabs: curTabs } = defaultBrowserTabs(cs)
 
-    const onStartLoading = () => setIsLoading(true)
-    const onStopLoading = () => setIsLoading(false)
+    if (nav.tabId === 'new') {
+      if (curTabs.length >= MAX_BROWSER_TABS) return
+      const newId = newBrowserTabId()
+      const nextTabs: BrowserTab[] = [...curTabs, { id: newId, url: nav.url }]
+      updatePanel(panel.id, {
+        componentState: { ...cs, tabs: nextTabs, activeTabId: newId },
+      })
+      return
+    }
 
-    const handleNavigation = () => {
+    const nextTabs = curTabs.map((t) => (t.id === nav.tabId ? { ...t, url: nav.url } : t))
+    updatePanel(panel.id, {
+      componentState: { ...cs, tabs: nextTabs, activeTabId: nav.tabId },
+    })
+    queueMicrotask(() => {
+      tabWebviewsRef.current.get(nav.tabId)?.loadURL(nav.url)
+    })
+  }, [pendingForThisPanel, panel.id, updatePanel])
+
+  useEffect(() => {
+    const t = tabs.find((x) => x.id === activeTabId)
+    if (t?.url) setDisplayUrl(t.url)
+    const wv = tabWebviewsRef.current.get(activeTabId)
+    if (wv) {
       try {
-        const currentUrl = wv.getURL()
-        log.debug('navigation', currentUrl)
-        if (!currentUrl || currentUrl === 'about:blank' || currentUrl === 'data:,') return
-
-        setDisplayUrl(currentUrl)
+        const u = wv.getURL()
+        if (u && u !== 'about:blank' && u !== 'data:,') setDisplayUrl(u)
         setCanGoBack(wv.canGoBack())
         setCanGoForward(wv.canGoForward())
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [activeTabId, tabs])
 
-        if (componentStateRef.current?.url !== currentUrl) {
-          log.debug('persist_url', currentUrl)
-          updatePanel(panel.id, {
-            componentState: { ...componentStateRef.current, url: currentUrl },
-          })
-        }
+  useEffect(() => {
+    if (!migratedLegacy) return
+    const container = containerRef.current
+    if (!container) return
+
+    const map = tabWebviewsRef.current
+    const tabIds = new Set(tabs.map((t) => t.id))
+
+    for (const [id, wv] of [...map.entries()]) {
+      if (!tabIds.has(id)) {
+        if (wv.parentElement === container) container.removeChild(wv as unknown as Node)
+        map.delete(id)
+      }
+    }
+
+    const syncTabUrl = (tabId: string, wv: ElectronWebview) => {
+      try {
+        const currentUrl = wv.getURL()
+        if (!currentUrl || currentUrl === 'about:blank' || currentUrl === 'data:,') return
+        const cs = componentStateRef.current
+        const { tabs: curTabs, activeTabId: curActive } = defaultBrowserTabs(cs)
+        const prev = curTabs.find((x) => x.id === tabId)?.url
+        if (prev === currentUrl) return
+        const nextTabs = curTabs.map((t) => (t.id === tabId ? { ...t, url: currentUrl } : t))
+        updatePanel(panel.id, {
+          componentState: { ...cs, tabs: nextTabs, activeTabId: curActive },
+        })
       } catch (err) {
         log.error('navigation_error', err instanceof Error ? err.message : String(err))
       }
     }
 
-    wv.addEventListener('did-start-loading', onStartLoading)
-    wv.addEventListener('did-stop-loading', onStopLoading)
-    wv.addEventListener('did-navigate', handleNavigation)
-    wv.addEventListener('did-navigate-in-page', handleNavigation)
-    wv.addEventListener('load-commit', handleNavigation)
+    const refreshChrome = (tabId: string, wv: ElectronWebview) => {
+      if (tabId !== activeTabIdRef.current) return
+      try {
+        const currentUrl = wv.getURL()
+        if (currentUrl && currentUrl !== 'about:blank' && currentUrl !== 'data:,') {
+          setDisplayUrl(currentUrl)
+        }
+        setCanGoBack(wv.canGoBack())
+        setCanGoForward(wv.canGoForward())
+      } catch {
+        /* ignore */
+      }
+    }
 
-    container.appendChild(wv as unknown as Node)
-    webviewRef.current = wv
+    for (const tab of tabs) {
+      let wv = map.get(tab.id)
+      if (!wv) {
+        log.debug('webview_mount', `${panel.id} tab=${tab.id} src=${tab.url}`)
+        wv = document.createElement('webview') as unknown as ElectronWebview
+        wv.setAttribute('partition', 'persist:browser')
+        wv.setAttribute('src', tab.url)
+        wv.setAttribute('allowpopups', '')
+        wv.style.width = '100%'
+        wv.style.height = '100%'
+        wv.style.border = 'none'
+        wv.style.flex = '1'
+
+        const tabId = tab.id
+        const onStartLoading = () => {
+          if (tabId === activeTabIdRef.current) setIsLoading(true)
+        }
+        const onStopLoading = () => {
+          if (tabId === activeTabIdRef.current) setIsLoading(false)
+        }
+        const handleNavigation = () => {
+          syncTabUrl(tabId, wv!)
+          refreshChrome(tabId, wv!)
+        }
+        const onTitle = (e: Event) => {
+          const title = (e as unknown as { title?: string }).title
+          if (!title) return
+          const cs = componentStateRef.current
+          const { tabs: curTabs, activeTabId: curActive } = defaultBrowserTabs(cs)
+          const nextTabs = curTabs.map((t) => (t.id === tabId ? { ...t, title } : t))
+          updatePanel(panel.id, {
+            componentState: { ...cs, tabs: nextTabs, activeTabId: curActive },
+          })
+        }
+
+        ;(wv as any).__orbisStart = onStartLoading
+        ;(wv as any).__orbisStop = onStopLoading
+        ;(wv as any).__orbisNav = handleNavigation
+        ;(wv as any).__orbisTitle = onTitle
+
+        wv.addEventListener('did-start-loading', onStartLoading)
+        wv.addEventListener('did-stop-loading', onStopLoading)
+        wv.addEventListener('did-navigate', handleNavigation)
+        wv.addEventListener('did-navigate-in-page', handleNavigation)
+        wv.addEventListener('load-commit', handleNavigation)
+        wv.addEventListener('page-title-updated', onTitle as any)
+
+        attachBrowserWindowOpenHandler(wv, panel.id)
+
+        container.appendChild(wv as unknown as Node)
+        map.set(tab.id, wv)
+      }
+    }
+
+    for (const [id, wv] of map.entries()) {
+      const show = id === activeTabId
+      wv.style.display = show ? 'flex' : 'none'
+    }
 
     return () => {
-      log.debug('webview_unmount', panel.id)
-      wv.removeEventListener('did-start-loading', onStartLoading)
-      wv.removeEventListener('did-stop-loading', onStopLoading)
-      wv.removeEventListener('did-navigate', handleNavigation)
-      wv.removeEventListener('did-navigate-in-page', handleNavigation)
-      wv.removeEventListener('load-commit', handleNavigation)
+      /* tab-removed cleanup above; full clear on panel unmount in separate effect */
     }
-  }, [])
+  }, [panel.id, migratedLegacy, tabs, activeTabId, updatePanel])
+
+  useEffect(() => {
+    return () => {
+      const container = containerRef.current
+      const map = tabWebviewsRef.current
+      for (const wv of map.values()) {
+        if (container && wv.parentElement === container) {
+          container.removeChild(wv as unknown as Node)
+        }
+      }
+      map.clear()
+    }
+  }, [panel.id])
 
   const navigate = useCallback(
     (targetUrl: string) => {
@@ -129,9 +291,14 @@ export function BrowserPanel({ panel, workspace: _workspace }: Props) {
       }
 
       setDisplayUrl(processed)
-      webviewRef.current?.loadURL(processed)
+      const wv = tabWebviewsRef.current.get(activeTabIdRef.current)
+      wv?.loadURL(processed)
+
+      const cs = componentStateRef.current
+      const { tabs: curTabs, activeTabId: curActive } = defaultBrowserTabs(cs)
+      const nextTabs = curTabs.map((t) => (t.id === curActive ? { ...t, url: processed } : t))
       updatePanel(panel.id, {
-        componentState: { ...componentStateRef.current, url: processed },
+        componentState: { ...cs, tabs: nextTabs, activeTabId: curActive },
       })
     },
     [panel.id, updatePanel],
@@ -147,12 +314,14 @@ export function BrowserPanel({ panel, workspace: _workspace }: Props) {
     [displayUrl, navigate],
   )
 
-  const goBack = useCallback(() => webviewRef.current?.goBack(), [])
-  const goForward = useCallback(() => webviewRef.current?.goForward(), [])
+  const goBack = useCallback(() => tabWebviewsRef.current.get(activeTabIdRef.current)?.goBack(), [activeTabId])
+  const goForward = useCallback(() => tabWebviewsRef.current.get(activeTabIdRef.current)?.goForward(), [activeTabId])
   const reload = useCallback(() => {
-    if (isLoading) webviewRef.current?.stop()
-    else webviewRef.current?.reload()
-  }, [isLoading])
+    const wv = tabWebviewsRef.current.get(activeTabIdRef.current)
+    if (!wv) return
+    if (isLoading) wv.stop()
+    else wv.reload()
+  }, [isLoading, activeTabId])
 
   const detectProfiles = useCallback(async () => {
     try {
@@ -171,8 +340,9 @@ export function BrowserPanel({ panel, workspace: _workspace }: Props) {
         setImportStatus(result.message)
         if (result.bookmarks) {
           setBookmarks(result.bookmarks)
+          const cs = componentStateRef.current
           updatePanel(panel.id, {
-            componentState: { ...panel.componentState, bookmarks: result.bookmarks },
+            componentState: { ...cs, bookmarks: result.bookmarks },
           })
         }
       } catch (err: unknown) {
@@ -180,7 +350,7 @@ export function BrowserPanel({ panel, workspace: _workspace }: Props) {
         setImportStatus('Import failed: ' + msg)
       }
     },
-    [panel.id, panel.componentState, updatePanel],
+    [panel.id, updatePanel],
   )
 
   const importBookmarksOnly = useCallback(
@@ -189,8 +359,9 @@ export function BrowserPanel({ panel, workspace: _workspace }: Props) {
         const result = await window.electronAPI.browser.importBookmarks(profilePath)
         if (result.bookmarks) {
           setBookmarks(result.bookmarks)
+          const cs = componentStateRef.current
           updatePanel(panel.id, {
-            componentState: { ...panel.componentState, bookmarks: result.bookmarks },
+            componentState: { ...cs, bookmarks: result.bookmarks },
           })
           setImportStatus('Bookmarks imported successfully')
         }
@@ -199,11 +370,64 @@ export function BrowserPanel({ panel, workspace: _workspace }: Props) {
         setImportStatus('Bookmark import failed: ' + msg)
       }
     },
-    [panel.id, panel.componentState, updatePanel],
+    [panel.id, updatePanel],
   )
+
+  const selectTab = useCallback(
+    (tabId: string) => {
+      const cs = componentStateRef.current
+      updatePanel(panel.id, {
+        componentState: { ...cs, activeTabId: tabId },
+      })
+    },
+    [panel.id, updatePanel],
+  )
+
+  const closeTab = useCallback(
+    (tabId: string) => {
+      const cs = componentStateRef.current
+      const { tabs: curTabs, activeTabId: curActive } = defaultBrowserTabs(cs)
+      if (curTabs.length <= 1) return
+      const idx = curTabs.findIndex((t) => t.id === tabId)
+      if (idx < 0) return
+      const nextTabs = curTabs.filter((t) => t.id !== tabId)
+      let nextActive = curActive
+      if (curActive === tabId) {
+        nextActive = nextTabs[Math.max(0, idx - 1)]?.id ?? nextTabs[0].id
+      }
+      updatePanel(panel.id, {
+        componentState: { ...cs, tabs: nextTabs, activeTabId: nextActive },
+      })
+    },
+    [panel.id, updatePanel],
+  )
+
+  const newTab = useCallback(() => {
+    const cs = componentStateRef.current
+    const { tabs: curTabs, activeTabId: curActive } = defaultBrowserTabs(cs)
+    if (curTabs.length >= MAX_BROWSER_TABS) return
+    const cur = curTabs.find((t) => t.id === curActive)
+    const startUrl = cur?.url || 'https://www.google.com'
+    const newId = newBrowserTabId()
+    updatePanel(panel.id, {
+      componentState: {
+        ...cs,
+        tabs: [...curTabs, { id: newId, url: startUrl }],
+        activeTabId: newId,
+      },
+    })
+  }, [panel.id, updatePanel])
 
   return (
     <div className="browser-panel">
+      <BrowserTabBar
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onSelectTab={selectTab}
+        onCloseTab={closeTab}
+        onNewTab={newTab}
+        canAddTab={tabs.length < MAX_BROWSER_TABS}
+      />
       <BrowserToolbar
         displayUrl={displayUrl}
         isLoading={isLoading}

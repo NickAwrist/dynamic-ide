@@ -1,4 +1,5 @@
 import type { GitRemoteOriginInfo } from '../../types/electron'
+import { requestOpenUrl } from '../../lib/request-open-url'
 
 interface Props {
   remoteInfo: GitRemoteOriginInfo
@@ -10,21 +11,21 @@ export function GitRemoteBar({ remoteInfo }: Props) {
       <button
         type="button"
         className="git-panel__remote-link"
-        onClick={() => void window.electronAPI.shell.openExternal(remoteInfo.repoUrl)}
+        onClick={() => requestOpenUrl(remoteInfo.repoUrl)}
       >
         Repository
       </button>
       <button
         type="button"
         className="git-panel__remote-link"
-        onClick={() => void window.electronAPI.shell.openExternal(remoteInfo.issuesUrl)}
+        onClick={() => requestOpenUrl(remoteInfo.issuesUrl)}
       >
         Issues
       </button>
       <button
         type="button"
         className="git-panel__remote-link"
-        onClick={() => void window.electronAPI.shell.openExternal(remoteInfo.pullsUrl)}
+        onClick={() => requestOpenUrl(remoteInfo.pullsUrl)}
       >
         {remoteInfo.pullsLabel}
       </button>
