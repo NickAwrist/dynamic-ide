@@ -13,6 +13,7 @@ import { SnapGuide } from '../utils/snap'
 export function Canvas() {
   const workspaces = useIDEStore((s) => s.workspaces)
   const activeWorkspaceId = useIDEStore((s) => s.activeWorkspaceId)
+  const setWorkspaceManagerOpen = useIDEStore((s) => s.setWorkspaceManagerOpen)
   const activeWs = useMemo(
     () => workspaces.find((w) => w.id === activeWorkspaceId),
     [workspaces, activeWorkspaceId],
@@ -55,6 +56,13 @@ export function Canvas() {
           <p className="canvas__placeholder-hint">
             Create or open a workspace to get started
           </p>
+          <button
+            type="button"
+            className="workspace-modal__btn workspace-modal__btn--primary canvas__open-workspace-cta"
+            onClick={() => setWorkspaceManagerOpen(true)}
+          >
+            Open or create workspace…
+          </button>
         </div>
       </div>
     )

@@ -83,7 +83,12 @@ export function WorkspaceManagerModal({ open, onClose }: Props) {
 
   const handleBrowse = async () => {
     const dir = await window.electronAPI.dialog.openDirectory()
-    if (dir) setRootPath(dir)
+    if (!dir) return
+    setRootPath(dir)
+    setNewName((prev) => {
+      if (prev.trim()) return prev
+      return dir.split(/[\\/]/).filter(Boolean).pop() || ''
+    })
   }
 
   const startRename = (id: string, currentName: string) => {
@@ -193,9 +198,9 @@ export function WorkspaceManagerModal({ open, onClose }: Props) {
           </section>
 
           <section className="workspace-modal__section">
-            <h3 className="workspace-modal__section-title">On disk (closed)</h3>
+            <h3 className="workspace-modal__section-title">Saved workspaces</h3>
             {closed.length === 0 ? (
-              <p className="workspace-modal__empty">No closed workspaces.</p>
+              <p className="workspace-modal__empty">No saved workspaces yet.</p>
             ) : (
               <ul className="workspace-modal__list">
                 {closed.map((s) => (

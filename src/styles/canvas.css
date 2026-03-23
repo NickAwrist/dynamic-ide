@@ -44,6 +44,10 @@
   color: var(--text-muted);
 }
 
+.canvas__open-workspace-cta {
+  margin-top: 4px;
+}
+
 /* Empty workspace: center placeholder; panels use absolute positioning so they stay out of flex flow */
 .canvas--empty-workspace {
   display: flex;
