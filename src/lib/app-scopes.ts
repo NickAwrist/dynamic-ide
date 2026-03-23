@@ -5,6 +5,7 @@ export const Scopes = {
   mainExtensionProtocol: 'orbis.main.extension.protocol',
   mainExtensionHost: 'orbis.main.extension.host',
   mainExtensionHostProcess: 'orbis.main.extension.host.process',
+  mainPty: 'orbis.main.pty',
   mainExtensionRpc: 'orbis.main.extension.rpc',
   mainExtensionBridge: 'orbis.main.extension.bridge',
   uiPanelBrowser: 'orbis.ui.panel.browser',

@@ -200,6 +200,7 @@ protocol.registerSchemesAsPrivileged([
 
 app.whenReady().then(() => {
   initAppLogger()
+  ptyService.primeShellEnv()
 
   protocol.handle('vscode-webview-resource', async (request) => {
     const parsed = new URL(request.url)
@@ -313,9 +314,12 @@ function registerIpcHandlers() {
   })
 
   // PTY
-  ipcMain.handle('pty:create', (_e, { cols, rows, cwd }: { cols: number; rows: number; cwd: string }) => {
-    return ptyService.create(cols, rows, cwd)
-  })
+  ipcMain.handle(
+    'pty:create',
+    async (_e, { cols, rows, cwd }: { cols: number; rows: number; cwd: string }) => {
+      return await ptyService.create(cols, rows, cwd)
+    },
+  )
   ipcMain.on('pty:write', (_e, { id, data }: { id: string; data: string }) => {
     ptyService.write(id, data)
   })
